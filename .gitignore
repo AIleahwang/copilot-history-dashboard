@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.DS_Store
+.idea/
+.vscode/
+*.log
+sessions/
+session-groups.json
+session-overrides.json
