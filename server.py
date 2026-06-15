@@ -1,9 +1,9 @@
 """Copilot 对话看板 · 本地服务
 运行: python server.py  → 浏览器访问 http://localhost:8765
 """
-import sqlite3, os, re, html, json, shutil, subprocess, webbrowser, sys
+import sqlite3, os, re, html, json, shutil, subprocess, webbrowser, sys, uuid
 from pathlib import Path
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 from datetime import datetime
 
@@ -11,8 +11,41 @@ HOME = Path(os.environ['USERPROFILE'])
 DB = HOME / '.copilot' / 'session-store.db'
 STATE_DIR = HOME / '.copilot' / 'session-state'
 PORT = 8765
+PROJECT_LABEL = 'General / Personal'
+EXCLUDED_CWD_MARKERS = ('clawpilot',)
+SCOUT_CWD_MARKER = 'scout'
+
+def session_scope_sql(alias='s'):
+    cwd = f"LOWER(COALESCE({alias}.cwd,''))"
+    return ' AND '.join(f"{cwd} NOT LIKE '%{marker}%'" for marker in EXCLUDED_CWD_MARKERS)
+
+def is_scout_cwd(cwd):
+    return SCOUT_CWD_MARKER in (cwd or '').lower()
+
+def scoped_existing_ids(ids):
+    valid = sorted({sid for sid in ids if re.fullmatch(r'[0-9a-f-]{36}', sid or '')})
+    if not valid:
+        return set()
+    con = sqlite3.connect(f'file:{DB}?mode=ro', uri=True)
+    try:
+        qs = ','.join('?' for _ in valid)
+        rows = con.execute(
+            f"SELECT s.id FROM sessions s WHERE s.id IN ({qs}) AND {session_scope_sql('s')}",
+            valid
+        ).fetchall()
+        return {r[0] for r in rows}
+    finally:
+        con.close()
+
+def session_in_scope(sid):
+    return sid in scoped_existing_ids([sid])
+
+def require_session_in_scope(sid):
+    if not session_in_scope(sid):
+        raise PermissionError(f'session is outside {PROJECT_LABEL} dashboard scope')
 
 CATS = [
+    ('🛰️ Scout', ['scout']),
     ('🧠 技能 / 数字分身', ['skill', 'openclaw', '分身', 'wechat']),
     ('💼 客户 & 商务', ['ptu', 'datazone', 'claude', 'gpt', 'justification', 'tpm', 'bedrock']),
     ('📊 汇报 & 沟通', ['老板', '汇报', 'summary', 'business']),
@@ -20,7 +53,9 @@ CATS = [
     ('🛠️ 工具 & 自助', ['email', '窗口', 'visualize', 'history', 'coding', 'dashboard', '看板']),
 ]
 
-def categorize(summary, ask):
+def categorize(summary, ask, cwd=''):
+    if is_scout_cwd(cwd):
+        return '🛰️ Scout'
     t = ((summary or '') + ' ' + (ask or '')).lower()
     for name, kws in CATS:
         if any(k in t for k in kws):
@@ -41,7 +76,7 @@ _BAD_SUMMARY_PATTERNS = (
 
 def clean_summary(raw, ask=''):
     """Sanitize polluted summaries: long prompt-template dumps from background agents."""
-    s = (raw or '').strip()
+    s = _SCOUT_CONTEXT_RE.sub('', unwrap_conversation_prompt(raw or '')).strip()
     if not s:
         return (ask or '(未命名)')[:80]
     low = s.lower()
@@ -55,25 +90,155 @@ def clean_summary(raw, ask=''):
         return '⚠ ' + clean + ('…' if len(clean) >= 80 else '')
     return s[:120] + ('…' if len(s) > 120 else '')
 
+_SKILL_CONTEXT_RE = re.compile(r'<skill-context.*?</skill-context>', re.S)
+_SYSTEM_REMINDER_RE = re.compile(r'<system_reminder>.*?</system_reminder>', re.S)
+_CURRENT_DATETIME_RE = re.compile(r'<current_datetime>.*?</current_datetime>\s*', re.S)
+_SCOUT_CONTEXT_RE = re.compile(r'\[[^\]]*Scout context:.*?\]\s*', re.S)
+_CLI_PROMPT_RE = re.compile(r'^\s*[❯>]+\s*', re.M)
+_ATTACHMENT_MARKER_RE = re.compile(r'\[(?:📷|🖼️|📎|📄)?\s*copilot-[^\]]+\]', re.I)
+_NOISY_REPLY_MARKERS = (
+    'response was interrupted due to a server error',
+    'failed to get response from the ai model',
+    'attached image or document is too large',
+    'try a smaller attachment or fewer attachments',
+)
+
+class UnsafeResumeError(RuntimeError):
+    pass
+
+def unwrap_conversation_prompt(text):
+    s = text or ''
+    low = s.lower()
+    if ('here is the conversation' in low or low.startswith('user:')) and 'user:' in low and 'assistant:' in low:
+        m = re.search(r'user:\s*(.*?)(?:\s+assistant:|$)', s, flags=re.I | re.S)
+        if m:
+            return m.group(1).strip()
+    return s
+
+def clean_turn_user(raw):
+    s = raw or ''
+    s = _SKILL_CONTEXT_RE.sub('', s)
+    s = _SYSTEM_REMINDER_RE.sub('', s)
+    s = _CURRENT_DATETIME_RE.sub('', s)
+    s = _SCOUT_CONTEXT_RE.sub('', s)
+    s = _CLI_PROMPT_RE.sub('', s)
+    s = unwrap_conversation_prompt(s)
+    return re.sub(r'\s+', ' ', s).strip()
+
+def is_noisy_reply(raw):
+    s = re.sub(r'\s+', ' ', (raw or '').lower()).strip()
+    return bool(s) and any(m in s for m in _NOISY_REPLY_MARKERS)
+
+def canonical_turn_user(text):
+    s = _ATTACHMENT_MARKER_RE.sub('[attachment]', (text or '').lower())
+    return re.sub(r'\s+', ' ', s).strip()
+
+def is_duplicate_prompt(a, b):
+    if not a or not b:
+        return False
+    if a == b:
+        return True
+    short, long = (a, b) if len(a) <= len(b) else (b, a)
+    return len(short) >= 40 and long.startswith(short)
+
+def build_clean_chain(turns):
+    chain = []
+    skipped = 0
+    for t in turns:
+        raw_user = t['user_message'] or ''
+        reply = (t['assistant_response'] or '').strip()
+        user = clean_turn_user(raw_user)
+        has_reply = bool(reply) and not is_noisy_reply(reply)
+
+        if not user and has_reply:
+            if chain and not chain[-1]['has_reply']:
+                chain[-1]['has_reply'] = True
+                chain[-1]['reply_preview'] = reply[:240]
+                chain[-1]['reply_len'] = len(reply)
+            else:
+                skipped += 1
+            continue
+        if not user and not has_reply:
+            skipped += 1
+            continue
+
+        item = {
+            'i': t['turn_index'],
+            'time': t['timestamp'],
+            'user': user[:300],
+            'user_full_len': len(raw_user),
+            'has_reply': has_reply,
+            'reply_preview': reply[:240] if has_reply else '',
+            'reply_len': len(reply) if has_reply else 0,
+            'repeat_count': 1,
+            '_canon': canonical_turn_user(user),
+            '_has_attachment': bool(_ATTACHMENT_MARKER_RE.search(raw_user)),
+        }
+
+        if chain and not item['has_reply'] and not chain[-1]['has_reply'] and is_duplicate_prompt(chain[-1].get('_canon'), item['_canon']):
+            chain[-1]['repeat_count'] = chain[-1].get('repeat_count', 1) + 1
+            chain[-1]['time'] = item['time']
+            chain[-1]['_has_attachment'] = chain[-1].get('_has_attachment') or item['_has_attachment']
+            skipped += 1
+            continue
+        chain.append(item)
+
+    for item in chain:
+        item.pop('_canon', None)
+    return chain, skipped
+
+def resume_block_reason_from_chain(chain):
+    if not chain:
+        return ''
+    last = chain[-1]
+    if not last.get('has_reply') and last.get('_has_attachment'):
+        return '最后一轮包含图片附件且没有成功回复，直接继续会重复触发 5MB 限制；请压缩图片或减少附件后新开对话。'
+    if not last.get('has_reply') and last.get('repeat_count', 1) > 1:
+        return '最后一轮是连续重复的未完成请求，直接继续可能再次重试失败；建议新开对话重新发送精简后的请求。'
+    return ''
+
+def session_resume_block_reason(sid):
+    con = sqlite3.connect(f'file:{DB}?mode=ro', uri=True)
+    con.row_factory = sqlite3.Row
+    try:
+        turns = con.execute("""SELECT turn_index, user_message, assistant_response, timestamp
+                               FROM turns WHERE session_id=? ORDER BY turn_index""", (sid,)).fetchall()
+    finally:
+        con.close()
+    chain, _ = build_clean_chain(turns)
+    return resume_block_reason_from_chain(chain)
+
 def fetch_sessions():
     con = sqlite3.connect(f'file:{DB}?mode=ro', uri=True)
     con.row_factory = sqlite3.Row
-    rows = con.execute("""
+    rows = con.execute(f"""
       SELECT s.id, s.summary, s.created_at, s.updated_at, s.cwd,
         (SELECT COUNT(*) FROM turns WHERE session_id=s.id) turns,
         (SELECT user_message FROM turns WHERE session_id=s.id AND user_message IS NOT NULL ORDER BY turn_index LIMIT 1) ask
       FROM sessions s
-      WHERE LOWER(COALESCE(s.cwd,'')) NOT LIKE '%clawpilot%'
+      WHERE {session_scope_sql('s')}
       ORDER BY COALESCE(s.updated_at, s.created_at) DESC
     """).fetchall()
-    # Build a haystack of all user messages per session for full-text search
-    body_rows = con.execute("""
-      SELECT session_id,
-        GROUP_CONCAT(SUBSTR(COALESCE(user_message,''), 1, 600)
-                  || ' ' || SUBSTR(COALESCE(assistant_response,''), 1, 400), ' ') body
-      FROM turns GROUP BY session_id
+    turn_rows = con.execute(f"""
+      SELECT t.session_id, t.turn_index, t.user_message, t.assistant_response, t.timestamp
+      FROM turns t
+      JOIN sessions s ON s.id=t.session_id
+      WHERE {session_scope_sql('s')}
+      ORDER BY t.session_id, t.turn_index
     """).fetchall()
-    bodies = {r['session_id']: (r['body'] or '') for r in body_rows}
+    turns_by_sid = {}
+    for tr in turn_rows:
+        turns_by_sid.setdefault(tr['session_id'], []).append(tr)
+    clean_meta = {}
+    bodies = {}
+    for session_id, tlist in turns_by_sid.items():
+        chain, skipped = build_clean_chain(tlist)
+        clean_meta[session_id] = {
+            'turns': len(chain),
+            'skipped_turns': skipped,
+            'resume_block_reason': resume_block_reason_from_chain(chain),
+        }
+        bodies[session_id] = ' '.join(c['user'] for c in chain)
     con.close()
     groups = load_groups()
     overrides = load_overrides()
@@ -83,7 +248,8 @@ def fetch_sessions():
             sid_to_group[m] = (gid, info)
     out = []
     for r in rows:
-        ask = (r['ask'] or '').strip().replace('\n', ' ')
+        ask = clean_turn_user(r['ask'])
+        meta = clean_meta.get(r['id'], {'turns': r['turns'], 'skipped_turns': 0, 'resume_block_reason': ''})
         gid_info = sid_to_group.get(r['id'])
         gid = gid_info[0] if gid_info else None
         ginfo = gid_info[1] if gid_info else None
@@ -91,15 +257,19 @@ def fetch_sessions():
         # Strip skill-context blocks + collapse whitespace, cap to 4000 chars
         body = re.sub(r'<skill-context.*?</skill-context>', '', bodies.get(r['id'], ''), flags=re.S)
         body = re.sub(r'\s+', ' ', body).strip()[:8000]
+        cat = '🛰️ Scout' if is_scout_cwd(r['cwd']) else (overrides.get(r['id']) or categorize(r['summary'], r['ask'], r['cwd']))
         out.append(dict(id=r['id'], summary=clean_summary(r['summary'], ask),
                         raw_summary=r['summary'] or '',
                         date=r['created_at'][:10],
                         updated=(r['updated_at'] or r['created_at'])[:10],
                         updated_iso=(r['updated_at'] or r['created_at']),
-                        turns=r['turns'],
+                        turns=meta['turns'],
+                        raw_turns=r['turns'],
+                        skipped_turns=meta['skipped_turns'],
+                        resume_block_reason=meta['resume_block_reason'],
                         ask=ask[:240],
                         body=body,
-                        cat=overrides.get(r['id']) or categorize(r['summary'], r['ask']),
+                        cat=cat,
                         group_id=gid,
                         is_primary=is_primary,
                         group_name=(ginfo or {}).get('name', '') if ginfo else '',
@@ -108,6 +278,7 @@ def fetch_sessions():
 
 def delete_session(sid):
     """从 DB 和 session-state 文件夹彻底删除"""
+    require_session_in_scope(sid)
     con = sqlite3.connect(DB, timeout=10)
     try:
         cur = con.cursor()
@@ -126,6 +297,7 @@ def delete_session(sid):
         shutil.rmtree(folder, ignore_errors=True)
 
 def rename_session(sid, new_name):
+    require_session_in_scope(sid)
     con = sqlite3.connect(DB, timeout=10)
     try:
         con.execute("UPDATE sessions SET summary=? WHERE id=?", (new_name[:120], sid))
@@ -138,7 +310,24 @@ GROUPS_FILE = HOME / '.copilot' / 'session-groups.json'
 
 def load_groups():
     if GROUPS_FILE.exists():
-        try: return json.loads(GROUPS_FILE.read_text(encoding='utf-8'))
+        try:
+            raw = json.loads(GROUPS_FILE.read_text(encoding='utf-8'))
+            ids = []
+            for gid, info in raw.items():
+                ids.append(gid)
+                ids.extend(info.get('members', []))
+                if info.get('primary'):
+                    ids.append(info['primary'])
+            allowed = scoped_existing_ids(ids)
+            filtered = {}
+            for gid, info in raw.items():
+                members = [m for m in info.get('members', []) if m in allowed]
+                primary = info.get('primary') if info.get('primary') in allowed else (members[0] if members else None)
+                if primary and primary not in members:
+                    members.insert(0, primary)
+                if len(members) > 1 and (gid in allowed or primary):
+                    filtered[primary or gid] = {'name': info.get('name', ''), 'primary': primary, 'members': members}
+            return filtered
         except Exception: return {}
     return {}
 
@@ -156,6 +345,8 @@ def merge_sessions(primary, secondary):
     """Add `secondary` into the group of `primary`. Creates group if needed.
        If `secondary` already belongs to another group, that group merges in."""
     if primary == secondary: return None
+    require_session_in_scope(primary)
+    require_session_in_scope(secondary)
     g = load_groups()
     pgid = _find_group(g, primary)
     if pgid is None:
@@ -173,6 +364,7 @@ def merge_sessions(primary, secondary):
     return pgid
 
 def unmerge_session(sid):
+    require_session_in_scope(sid)
     g = load_groups()
     gid = _find_group(g, sid)
     if not gid: return False
@@ -198,7 +390,10 @@ OVERRIDES_FILE = HOME / '.copilot' / 'session-overrides.json'
 
 def load_overrides():
     if OVERRIDES_FILE.exists():
-        try: return json.loads(OVERRIDES_FILE.read_text(encoding='utf-8'))
+        try:
+            raw = json.loads(OVERRIDES_FILE.read_text(encoding='utf-8'))
+            allowed = scoped_existing_ids(raw.keys())
+            return {sid: cat for sid, cat in raw.items() if sid in allowed}
         except Exception: return {}
     return {}
 
@@ -207,6 +402,7 @@ def save_overrides(d):
     OVERRIDES_FILE.write_text(json.dumps(d, ensure_ascii=False, indent=2), encoding='utf-8')
 
 def set_session_cat(sid, cat):
+    require_session_in_scope(sid)
     d = load_overrides()
     if cat:
         d[sid] = cat
@@ -214,33 +410,213 @@ def set_session_cat(sid, cat):
         d.pop(sid, None)
     save_overrides(d)
 
+# ─── Mission Queue (floating task radar for /space) ─────────────────────────
+MISSION_FILE = HOME / '.copilot' / 'mission-queue.json'
+MISSION_LANES = ('NOW', 'NEXT', 'LOOP', 'PARKED')
+MISSION_PRIORITIES = ('P0', 'P1', 'P2')
+DEFAULT_MISSIONS = [
+    {
+        'id': 'ai-digital-twin',
+        'title': 'AI 数字分身计划',
+        'lane': 'NOW',
+        'priority': 'P0',
+        'type': 'project',
+        'cadence': '本周',
+        'next': '梳理 v1 功能边界、人格设定、数据源与验证链路',
+        'query': '数字分身 personal ai agent openclaw wechat',
+    },
+    {
+        'id': 'bd-leads',
+        'title': 'BD Leads',
+        'lane': 'NOW',
+        'priority': 'P0',
+        'type': 'loop',
+        'cadence': '每周一 / 三 / 五',
+        'next': '更新 10-20 个潜在客户，标注下一步触达动作',
+        'query': 'BD leads startup outreach pipeline',
+    },
+    {
+        'id': 'aesthetic-biweekly',
+        'title': '审美双周报',
+        'lane': 'LOOP',
+        'priority': 'P1',
+        'type': 'loop',
+        'cadence': '每两周',
+        'next': '收集 5 个视觉案例，输出可复用的审美 pattern',
+        'query': '审美 aesthetic visual design summary',
+    },
+    {
+        'id': 'copilot-history-dashboard',
+        'title': 'Copilot History Dashboard',
+        'lane': 'NEXT',
+        'priority': 'P1',
+        'type': 'project',
+        'cadence': '本周',
+        'next': '打磨 Mission Queue，完成 v2 README / GitHub 更新',
+        'query': 'copilot history dashboard 看板 mission queue',
+    },
+    {
+        'id': 'follow-builders',
+        'title': 'Follow Builders Skill',
+        'lane': 'LOOP',
+        'priority': 'P1',
+        'type': 'loop',
+        'cadence': '每周',
+        'next': '新增 / 复盘 3 个 AI builder，提炼输入到输出的启发',
+        'query': 'follow builders skill ai builder digest',
+    },
+    {
+        'id': 'english-writing',
+        'title': '英语表达 / 商务写作',
+        'lane': 'PARKED',
+        'priority': 'P2',
+        'type': 'loop',
+        'cadence': '每周',
+        'next': '复盘 3 条高频表达，沉淀到可复用话术库',
+        'query': 'english 商务写作 expression learning',
+    },
+]
+
+def _mission_now():
+    return datetime.now().isoformat(timespec='seconds')
+
+def _normalize_mission(m, index=0):
+    title = str(m.get('title') or '').strip()[:80]
+    if not title:
+        title = 'Untitled Mission'
+    lane = str(m.get('lane') or 'NEXT').strip().upper()
+    if lane not in MISSION_LANES:
+        lane = 'NEXT'
+    priority = str(m.get('priority') or 'P2').strip().upper()
+    if priority not in MISSION_PRIORITIES:
+        priority = 'P2'
+    typ = str(m.get('type') or 'project').strip().lower()
+    if typ not in ('project', 'loop'):
+        typ = 'project'
+    status = str(m.get('status') or 'open').strip().lower()
+    if status not in ('open', 'completed'):
+        status = 'open'
+    sid = str(m.get('session_id') or '').strip()
+    if sid and (not re.fullmatch(r'[0-9a-f-]{36}', sid) or not session_in_scope(sid)):
+        sid = ''
+    raw_done = m.get('done_session_ids') or []
+    if not isinstance(raw_done, list):
+        raw_done = []
+    done_ids = [str(x).strip() for x in raw_done if re.fullmatch(r'[0-9a-f-]{36}', str(x).strip())]
+    allowed_done = scoped_existing_ids(done_ids) if done_ids else set()
+    mid = str(m.get('id') or '').strip()
+    if not re.fullmatch(r'[A-Za-z0-9_-]{3,64}', mid):
+        mid = 'm-' + uuid.uuid4().hex[:10]
+    now = _mission_now()
+    return {
+        'id': mid,
+        'title': title,
+        'lane': lane,
+        'priority': priority,
+        'type': typ,
+        'cadence': str(m.get('cadence') or '').strip()[:60],
+        'next': str(m.get('next') or '').strip()[:180],
+        'query': str(m.get('query') or title).strip()[:160],
+        'session_id': sid,
+        'done_session_ids': [x for x in done_ids if x in allowed_done],
+        'status': status,
+        'created_at': str(m.get('created_at') or now),
+        'updated_at': str(m.get('updated_at') or now),
+        'completed_at': str(m.get('completed_at') or '') if status == 'completed' else '',
+        'sort_order': int(m.get('sort_order') or index),
+    }
+
+def load_missions():
+    if not MISSION_FILE.exists():
+        missions = [_normalize_mission(m, i) for i, m in enumerate(DEFAULT_MISSIONS)]
+        save_missions(missions)
+        return missions
+    try:
+        raw = json.loads(MISSION_FILE.read_text(encoding='utf-8'))
+        items = raw.get('missions', raw) if isinstance(raw, dict) else raw
+        if not isinstance(items, list):
+            return []
+        return [_normalize_mission(m, i) for i, m in enumerate(items) if isinstance(m, dict)]
+    except Exception:
+        return []
+
+def save_missions(missions):
+    MISSION_FILE.parent.mkdir(parents=True, exist_ok=True)
+    MISSION_FILE.write_text(json.dumps({'missions': missions}, ensure_ascii=False, indent=2), encoding='utf-8')
+
+def upsert_mission(payload):
+    missions = load_missions()
+    mid = str(payload.get('id') or '').strip()
+    now = _mission_now()
+    found = False
+    for i, m in enumerate(missions):
+        if mid and m['id'] == mid:
+            merged = {**m, **payload, 'id': m['id'], 'updated_at': now}
+            missions[i] = _normalize_mission(merged, i)
+            found = True
+            break
+    if not found:
+        item = dict(payload)
+        item.setdefault('id', 'm-' + uuid.uuid4().hex[:10])
+        item.setdefault('created_at', now)
+        item['updated_at'] = now
+        item.setdefault('sort_order', len(missions))
+        missions.append(_normalize_mission(item, len(missions)))
+    save_missions(missions)
+    return missions
+
+def complete_mission(mid):
+    missions = load_missions()
+    now = _mission_now()
+    changed = False
+    for m in missions:
+        if m['id'] == mid:
+            m['status'] = 'completed'
+            m['completed_at'] = now
+            m['updated_at'] = now
+            changed = True
+            break
+    if changed:
+        save_missions(missions)
+    return changed
+
+def delete_mission(mid):
+    missions = load_missions()
+    kept = [m for m in missions if m['id'] != mid]
+    if len(kept) == len(missions):
+        return False
+    save_missions(kept)
+    return True
+
+def complete_mission_session(mid, sid):
+    require_session_in_scope(sid)
+    missions = load_missions()
+    now = _mission_now()
+    changed = False
+    for m in missions:
+        if m['id'] == mid:
+            done = set(m.get('done_session_ids') or [])
+            done.add(sid)
+            m['done_session_ids'] = sorted(done)
+            m['updated_at'] = now
+            changed = True
+            break
+    if changed:
+        save_missions(missions)
+    return changed
+
 def session_detail(sid):
     """Return structured PRD-like summary of one session."""
     con = sqlite3.connect(f'file:{DB}?mode=ro', uri=True)
     con.row_factory = sqlite3.Row
-    s = con.execute("SELECT * FROM sessions WHERE id=?", (sid,)).fetchone()
+    s = con.execute(f"SELECT * FROM sessions s WHERE s.id=? AND {session_scope_sql('s')}", (sid,)).fetchone()
     if not s:
         con.close(); return None
     turns = con.execute("""SELECT turn_index, user_message, assistant_response, timestamp
                            FROM turns WHERE session_id=? ORDER BY turn_index""", (sid,)).fetchall()
     con.close()
 
-    # Build chain (turn-by-turn) with light cleanup
-    chain = []
-    for t in turns:
-        u = (t['user_message'] or '').strip()
-        a = (t['assistant_response'] or '').strip()
-        # Strip skill-context blocks for readability
-        u = re.sub(r'<skill-context.*?</skill-context>', '', u, flags=re.S).strip()
-        chain.append({
-            'i': t['turn_index'],
-            'time': t['timestamp'],
-            'user': u[:300],
-            'user_full_len': len(t['user_message'] or ''),
-            'has_reply': bool(a),
-            'reply_preview': a[:240],
-            'reply_len': len(a),
-        })
+    chain, skipped_turns = build_clean_chain(turns)
 
     # Scan session-state folder for artifacts
     folder = STATE_DIR / sid
@@ -269,7 +645,10 @@ def session_detail(sid):
 
     # Determine status
     last = chain[-1] if chain else None
-    if not chain:
+    resume_block_reason = resume_block_reason_from_chain(chain)
+    if resume_block_reason:
+        status = ('interrupted', '含未完成附件请求')
+    elif not chain:
         status = ('empty', '空会话')
     elif last and not last['has_reply']:
         status = ('interrupted', '最后一轮无回复（可能中断）')
@@ -298,15 +677,18 @@ def session_detail(sid):
         'created_at': s['created_at'],
         'updated_at': s['updated_at'] or s['created_at'],
         'turns': len(chain),
+        'raw_turns': len(turns),
+        'skipped_turns': skipped_turns,
         'first_ask': chain[0]['user'] if chain else '',
         'last_ask': chain[-1]['user'] if chain else '',
-        'cat': categorize(s['summary'], chain[0]['user'] if chain else ''),
-        'cat_color': CAT_COLORS.get(categorize(s['summary'], chain[0]['user'] if chain else ''), '#a0aec0'),
+        'cat': categorize(s['summary'], chain[0]['user'] if chain else '', s['cwd']),
+        'cat_color': CAT_COLORS.get(categorize(s['summary'], chain[0]['user'] if chain else '', s['cwd']), '#a0aec0'),
         'chain': chain,
         'artifacts': artifacts,
         'plan_preview': plan_preview,
         'status': status[0],
         'status_label': status[1],
+        'resume_block_reason': resume_block_reason,
         'themes': themes,
         'duration_days': max(1, (datetime.fromisoformat(s['created_at'].replace('Z','+00:00')).date()
                                  .toordinal() - datetime.fromisoformat((s['updated_at'] or s['created_at']).replace('Z','+00:00')).date().toordinal()) * -1) if s['updated_at'] else 0,
@@ -314,6 +696,10 @@ def session_detail(sid):
 
 def resume_session(sid):
     """新开一个 Windows Terminal/cmd 窗口运行 copilot --resume"""
+    require_session_in_scope(sid)
+    block_reason = session_resume_block_reason(sid)
+    if block_reason:
+        raise UnsafeResumeError(block_reason)
     # Try Windows Terminal first, fallback to cmd
     try:
         subprocess.Popen(['wt.exe', '-w', '0', 'nt', 'cmd', '/k',
@@ -325,6 +711,7 @@ def resume_session(sid):
 
 # Category color coding (semantic, ADHD-friendly consistent across UI)
 CAT_COLORS = {
+    '🛰️ Scout': '#9FE870',
     '🧠 技能 / 数字分身': '#a78bfa',
     '💼 客户 & 商务': '#fb923c',
     '📊 汇报 & 沟通': '#22d3a8',
@@ -420,6 +807,12 @@ button{{font-family:inherit;font-size:inherit;color:inherit;background:none;bord
 .col-head .ic{{font-size:18px}}
 .col-head .title{{flex:1;color:#fff;font-weight:600;letter-spacing:.2px;text-shadow:0 1px 0 rgba(0,0,0,.25);font-size:14px}}
 .col-head .count{{background:color-mix(in srgb, var(--c) 28%, transparent);color:#fff;padding:2px 10px;border-radius:100px;font-size:11px;font-weight:700;letter-spacing:.5px;border:1px solid color-mix(in srgb, var(--c) 50%, transparent)}}
+.col-body{{overflow:visible;position:relative}}
+.col-body.expanded{{max-height:min(720px, calc(100vh - 220px));overflow-y:auto;overscroll-behavior:contain;padding-right:3px;scrollbar-width:thin;scrollbar-color:var(--c) transparent}}
+.col-body.expanded::-webkit-scrollbar{{width:6px}}
+.col-body.expanded::-webkit-scrollbar-thumb{{background:color-mix(in srgb,var(--c) 42%,transparent);border-radius:3px}}
+.col-more{{width:100%;margin:4px 0 2px;padding:9px 10px;border-radius:11px;border:1px dashed color-mix(in srgb,var(--c) 45%,transparent);background:color-mix(in srgb,var(--c) 10%,rgba(0,0,0,.16));color:color-mix(in srgb,var(--c) 35%,#fff);font-size:11.5px;letter-spacing:.8px}}
+.col-more:hover{{border-style:solid;background:color-mix(in srgb,var(--c) 17%,rgba(0,0,0,.22));color:#fff}}
 .col-empty{{font-size:11.5px;color:rgba(255,255,255,.45);font-style:italic;text-align:center;padding:18px 8px}}
 
 /* Cards */
@@ -432,6 +825,20 @@ button{{font-family:inherit;font-size:inherit;color:inherit;background:none;bord
 .card.stale:hover{{opacity:1}}
 .card.dragging{{opacity:.4;transform:scale(.96)}}
 .card.merge-target{{border:2px dashed var(--c);background:color-mix(in srgb, var(--c) 22%, var(--surface));transform:scale(1.03)}}
+/* ── Celebration animations (delete poof + merge halo) ──────────── */
+.card.poof{{animation:poof .55s cubic-bezier(.4,.0,.2,1) forwards;pointer-events:none}}
+@keyframes poof{{
+  0%{{transform:scale(1);opacity:1;filter:blur(0)}}
+  40%{{transform:scale(1.08) rotate(-2deg);opacity:.95;filter:blur(0)}}
+  100%{{transform:scale(.2) rotate(8deg);opacity:0;filter:blur(8px)}}
+}}
+.card.merge-glow{{animation:mergeGlow .9s cubic-bezier(.2,.8,.2,1)}}
+@keyframes mergeGlow{{
+  0%{{box-shadow:0 0 0 0 color-mix(in srgb, var(--c) 60%, transparent)}}
+  50%{{box-shadow:0 0 0 18px color-mix(in srgb, var(--c) 0%, transparent), 0 0 38px color-mix(in srgb, var(--c) 70%, transparent);transform:scale(1.04)}}
+  100%{{box-shadow:0 0 0 0 transparent}}
+}}
+#fx-canvas{{position:fixed;inset:0;pointer-events:none;z-index:9999}}
 .card-head{{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px}}
 .card h3{{font-size:14.5px;font-weight:600;line-height:1.35;color:var(--text);word-break:break-word;padding-right:24px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;max-height:6em}}
 .card .meta{{display:flex;gap:8px;align-items:center;font-size:11px;color:var(--text-m);margin-bottom:10px;letter-spacing:.3px;flex-wrap:wrap}}
@@ -446,7 +853,7 @@ button{{font-family:inherit;font-size:inherit;color:inherit;background:none;bord
 .card.group{{background:linear-gradient(135deg, color-mix(in srgb, var(--c) 18%, var(--surface)), color-mix(in srgb, var(--c) 6%, var(--surface)));border:1.5px solid color-mix(in srgb, var(--c) 45%, var(--border))}}
 .card.group::before{{width:6px}}
 .group-badge{{display:inline-flex;align-items:center;gap:5px;background:color-mix(in srgb, var(--c) 35%, transparent);color:#fff;font-size:10.5px;font-weight:700;letter-spacing:.6px;padding:2px 9px;border-radius:100px;margin-bottom:6px;border:1px solid color-mix(in srgb, var(--c) 60%, transparent)}}
-.group-members{{display:flex;flex-direction:column;gap:6px;margin:8px 0 10px;padding:8px;background:rgba(0,0,0,.18);border-radius:8px;border:1px solid var(--border)}}
+.group-members{{display:flex;flex-direction:column;gap:6px;margin:8px 0 10px;padding:8px;background:rgba(0,0,0,.18);border-radius:8px;border:1px solid var(--border);max-height:180px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--c) transparent}}
 .group-member{{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;font-size:11.5px;color:var(--text-d);transition:.15s;cursor:default}}
 .group-member:hover{{background:rgba(255,255,255,.04)}}
 .group-member .name{{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
@@ -542,7 +949,7 @@ button{{font-family:inherit;font-size:inherit;color:inherit;background:none;bord
 <div class=controls>
   <div class=search-row>
     <div class=search>
-      <svg width=16 height=16 viewBox="0 0 24 24" fill=none stroke=currentColor stroke-width=2><circle cx=11 cy=11 r=7/><path d="m21 21-4.3-4.3"/></svg>
+      <svg width=16 height=16 viewBox="0 0 24 24" fill=none stroke=currentColor stroke-width=2><circle cx=11 cy=11 r="7"/><path d="m21 21-4.3-4.3"/></svg>
       <input id=q placeholder="搜索（支持中英双语，如「英语」能命中 English）" autocomplete=off>
       <span class=kbd>/</span>
     </div>
@@ -567,10 +974,14 @@ button{{font-family:inherit;font-size:inherit;color:inherit;background:none;bord
 
 <div class=backdrop id=modal><div class=modal id=modalInner></div></div>
 <div id=toast class=toast></div>
+<canvas id=fx-canvas></canvas>
 
 <script>
 const DATA = {data_json};
 const PINS = new Set(JSON.parse(localStorage.getItem('pins')||'[]'));
+const COL_EXPANDED_KEY = 'classic_col_expanded_v1';
+const COL_LIMIT = 4;
+const COL_EXPANDED = new Set(JSON.parse(localStorage.getItem(COL_EXPANDED_KEY)||'[]'));
 const state = {{q:'', cat:'all', sort:'recent'}};
 
 // Bilingual synonym map (expand to cover your vocabulary freely)
@@ -744,6 +1155,12 @@ function cardHTML(s, q){{
     </footer>
   </article>`;
 }}
+function toggleColItems(e, cat){{
+  e.stopPropagation();
+  if(COL_EXPANDED.has(cat)) COL_EXPANDED.delete(cat); else COL_EXPANDED.add(cat);
+  localStorage.setItem(COL_EXPANDED_KEY, JSON.stringify([...COL_EXPANDED]));
+  renderGrid();
+}}
 
 function renderGrid(){{
   const arr = filtered();
@@ -762,6 +1179,9 @@ function renderGrid(){{
   k.innerHTML = showCats.map(c => {{
     const items = byCat[c] || [];
     if(state.q && items.length === 0) return '';  // hide empty cols when searching
+    const expanded = COL_EXPANDED.has(c) || !!state.q || state.cat !== 'all';
+    const shown = expanded ? items : items.slice(0, COL_LIMIT);
+    const hidden = Math.max(0, items.length - shown.length);
     const color = CAT_COLOR[c] || '#a0aec0';
     const icon = (CAT_ICON[c] || c).split(' ')[0];
     const title = c.replace(/^[^\\s]+\\s*/, '');
@@ -772,7 +1192,11 @@ function renderGrid(){{
         <span class=title>${{esc(title)}}</span>
         <span class=count>${{items.length}}</span>
       </div>
-      ${{items.length ? items.map(s=>cardHTML(s, state.q)).join('') : '<div class=col-empty>(空)</div>'}}
+      <div class="col-body ${{expanded?'expanded':''}}">
+        ${{items.length ? shown.map(s=>cardHTML(s, state.q)).join('') : '<div class=col-empty>(空)</div>'}}
+        ${{hidden?`<button class=col-more onclick="toggleColItems(event,'${{esc(c)}}')">展开剩余 ${{hidden}} 个</button>`:''}}
+        ${{expanded && items.length>COL_LIMIT && state.cat==='all' && !state.q?`<button class=col-more onclick="toggleColItems(event,'${{esc(c)}}')">收起到 ${{COL_LIMIT}} 个</button>`:''}}
+      </div>
     </div>`;
   }}).join('');
 }}
@@ -809,7 +1233,14 @@ async function onDrop(e, targetSid){{
   const r = await fetch('/groups/merge', {{method:'POST',
     headers:{{'Content-Type':'application/json'}},
     body: JSON.stringify({{primary: targetSid, secondary: DRAG_SID}})}});
-  if(r.ok){{ toast('已合并 ✓','ok'); setTimeout(()=>location.reload(), 400); }}
+  if(r.ok){{
+    const tgtEl = e.currentTarget;
+    const rect = tgtEl.getBoundingClientRect();
+    celebrateMerge(rect);
+    tgtEl.classList.remove('merge-glow'); void tgtEl.offsetWidth; tgtEl.classList.add('merge-glow');
+    toast('🧩 同类项已合并 · 思路汇流','ok');
+    setTimeout(()=>location.reload(), 900);
+  }}
   else toast('合并失败','err');
 }}
 // Column-level drop = re-categorize (drag card onto blank column area)
@@ -954,6 +1385,7 @@ async function openModal(id){{
       <div class=num>#${{c.i}}</div>
       <div class=what>
         <b>${{esc(c.user) || '<i style="opacity:.5">(无内容)</i>'}}</b>
+        ${{c.repeat_count>1 ? `<div class=reply style="color:#fbbf24">已折叠 ${{c.repeat_count}} 次重复失败尝试</div>` : ''}}
         ${{c.has_reply ? `<div class=reply>↪ ${{esc(c.reply_preview)}}</div>` : '<div class=reply style="color:var(--danger)">↪ (无回复)</div>'}}
       </div>
     </div>`).join('') : '<div class=m-empty>(暂无对话轮次)</div>';
@@ -984,10 +1416,12 @@ async function openModal(id){{
       <h2>${{esc(d.summary)}}</h2>
       <div class=m-meta>
         <span><b>${{d.turns}}</b> 轮交互</span>
+        ${{d.skipped_turns?`<span>🧹 已隐藏 <b>${{d.skipped_turns}}</b> 条系统/重复噪音</span>`:''}}
         <span>📅 始于 ${{d.created_at.slice(0,10)}}</span>
         <span>🕰️ 活跃于 ${{d.updated_at.slice(0,10)}}</span>
         ${{d.artifacts.length?`<span>📎 <b>${{d.artifacts.length}}</b> 个产出物</span>`:''}}
       </div>
+      ${{d.resume_block_reason?`<div style="margin-top:12px;padding:10px 12px;border:1px solid rgba(245,158,11,.45);background:rgba(245,158,11,.12);border-radius:14px;color:#fbbf24;font-size:12px;line-height:1.6">⚠ ${{esc(d.resume_block_reason)}}</div>`:''}}
       ${{themesHtml}}
     </div>
     <div class=m-body style="--c:${{d.cat_color}}">
@@ -1021,6 +1455,90 @@ async function openFolder(id){{
 function closeModal(){{document.getElementById('modal').classList.remove('show')}}
 document.getElementById('modal').addEventListener('click',e=>{{if(e.target.id==='modal')closeModal()}});
 
+// ── Celebration FX: WebAudio synth + canvas confetti ───────────
+let _ac=null;
+function _audio(){{ if(!_ac){{ try{{_ac=new (window.AudioContext||window.webkitAudioContext)()}}catch(e){{_ac=null}} }} return _ac; }}
+function _tone(freq, dur, type, vol, when){{
+  const ac=_audio(); if(!ac) return;
+  const t0=ac.currentTime+(when||0);
+  const o=ac.createOscillator(), g=ac.createGain();
+  o.type=type||'sine'; o.frequency.value=freq;
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(vol||0.18, t0+0.015);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0+dur);
+  o.connect(g); g.connect(ac.destination);
+  o.start(t0); o.stop(t0+dur+0.02);
+}}
+function chimeDelete(){{
+  // descending: closure, entropy release
+  _tone(880,.18,'triangle',.18, 0);
+  _tone(659,.22,'triangle',.16, .08);
+  _tone(440,.32,'sine',    .14, .18);
+}}
+function chimeMerge(){{
+  // ascending arpeggio: constructive
+  _tone(523,.12,'triangle',.16, 0);
+  _tone(659,.12,'triangle',.16, .07);
+  _tone(784,.14,'triangle',.18, .14);
+  _tone(1046,.22,'sine',   .14, .22);
+}}
+
+const _fx={{c:null,ctx:null,parts:[],raf:0}};
+function _fxInit(){{
+  if(_fx.c) return;
+  _fx.c=document.getElementById('fx-canvas');
+  _fx.ctx=_fx.c.getContext('2d');
+  const resize=()=>{{const r=devicePixelRatio||1;_fx.c.width=innerWidth*r;_fx.c.height=innerHeight*r;_fx.c.style.width=innerWidth+'px';_fx.c.style.height=innerHeight+'px';_fx.ctx.setTransform(r,0,0,r,0,0)}};
+  resize(); addEventListener('resize',resize);
+}}
+function _fxLoop(){{
+  const ctx=_fx.ctx; ctx.clearRect(0,0,innerWidth,innerHeight);
+  const alive=[];
+  for(const p of _fx.parts){{
+    p.vy+=p.g; p.x+=p.vx; p.y+=p.vy; p.vx*=0.99; p.rot+=p.vr; p.life-=1;
+    if(p.life>0 && p.y<innerHeight+30){{
+      const a=Math.min(1, p.life/30);
+      ctx.save(); ctx.globalAlpha=a; ctx.translate(p.x,p.y); ctx.rotate(p.rot);
+      ctx.fillStyle=p.color;
+      if(p.shape==='rect'){{ ctx.fillRect(-p.s/2,-p.s/2,p.s,p.s*.4); }}
+      else{{ ctx.beginPath(); ctx.arc(0,0,p.s/2,0,Math.PI*2); ctx.fill(); }}
+      ctx.restore(); alive.push(p);
+    }}
+  }}
+  _fx.parts=alive;
+  if(alive.length) _fx.raf=requestAnimationFrame(_fxLoop);
+  else{{ cancelAnimationFrame(_fx.raf); _fx.raf=0; ctx.clearRect(0,0,innerWidth,innerHeight); }}
+}}
+function confettiBurst(x, y, colors, count, spread){{
+  _fxInit();
+  count=count||80; spread=spread||Math.PI*1.4;
+  const dir=-Math.PI/2; // upward
+  for(let i=0;i<count;i++){{
+    const a=dir + (Math.random()-.5)*spread;
+    const v=4+Math.random()*7;
+    _fx.parts.push({{
+      x:x, y:y, vx:Math.cos(a)*v, vy:Math.sin(a)*v,
+      g:0.18+Math.random()*.05, rot:Math.random()*Math.PI, vr:(Math.random()-.5)*.3,
+      s:5+Math.random()*7, life:60+Math.random()*40,
+      color: colors[(Math.random()*colors.length)|0],
+      shape: Math.random()<.55?'rect':'circle',
+    }});
+  }}
+  if(!_fx.raf) _fx.raf=requestAnimationFrame(_fxLoop);
+}}
+function celebrateDelete(rect){{
+  chimeDelete();
+  const cx=rect?rect.left+rect.width/2:innerWidth/2;
+  const cy=rect?rect.top+rect.height/2:innerHeight/2;
+  confettiBurst(cx, cy, ['#9FE870','#FFD17A','#ffffff','#7B7B7B','#a8d4b8'], 70, Math.PI*1.6);
+}}
+function celebrateMerge(rect){{
+  chimeMerge();
+  const cx=rect?rect.left+rect.width/2:innerWidth/2;
+  const cy=rect?rect.top+rect.height/2:innerHeight/2;
+  confettiBurst(cx, cy, ['#9FE870','#22d3a8','#f472b6','#a78bfa','#ffffff'], 55, Math.PI*1.2);
+}}
+
 // Actions
 function toast(msg, kind){{
   const t=document.getElementById('toast');
@@ -1029,7 +1547,8 @@ function toast(msg, kind){{
 }}
 async function resume(id){{
   const r=await fetch('/resume?id='+id,{{method:'POST'}});
-  toast(r.ok?'✓ 已在新终端打开':'✗ 启动失败', r.ok?'ok':'err');
+  const msg = r.ok ? '✓ 已在新终端打开' : (await r.text() || '✗ 启动失败');
+  toast(msg, r.ok?'ok':'err');
 }}
 function togglePin(id){{
   if(PINS.has(id)){{PINS.delete(id);toast('已取消固定')}}
@@ -1048,11 +1567,17 @@ async function renameIt(id){{
 async function del_(id){{
   const s = DATA.find(x=>x.id===id); if(!s) return;
   if(!confirm(`删除「${{s.summary}}」？\\n该会话全部历史将被清除，不可恢复。`)) return;
+  const cardEl = document.querySelector(`[data-id="${{id}}"]`);
+  const rect = cardEl ? cardEl.getBoundingClientRect() : null;
   const r=await fetch('/delete?id='+id,{{method:'POST'}});
   if(r.ok){{
-    const i=DATA.findIndex(x=>x.id===id); if(i>-1) DATA.splice(i,1);
-    PINS.delete(id); localStorage.setItem('pins', JSON.stringify([...PINS]));
-    closeModal(); rerender(); toast('已删除');
+    celebrateDelete(rect);
+    if(cardEl){{ cardEl.classList.add('poof'); }}
+    setTimeout(()=>{{
+      const i=DATA.findIndex(x=>x.id===id); if(i>-1) DATA.splice(i,1);
+      PINS.delete(id); localStorage.setItem('pins', JSON.stringify([...PINS]));
+      closeModal(); rerender(); toast('✨ 已清理 · 熵 -1','ok');
+    }}, 480);
   }} else toast('删除失败','err');
 }}
 
@@ -1082,6 +1607,8 @@ class H(BaseHTTPRequestHandler):
             if not d:
                 self._send(404, '{"error":"not found"}', 'application/json'); return
             self._send(200, json.dumps(d, ensure_ascii=False), 'application/json; charset=utf-8')
+        elif p.path == '/missions':
+            self._send(200, json.dumps({'missions': load_missions()}, ensure_ascii=False), 'application/json; charset=utf-8')
         else:
             self._send(404, 'not found', 'text/plain')
     def do_POST(self):
@@ -1116,6 +1643,27 @@ class H(BaseHTTPRequestHandler):
                 if not re.fullmatch(r'[0-9a-f-]{36}', gid) or not name:
                     self._send(400, 'bad', 'text/plain'); return
                 rename_group(gid, name); self._send(200, 'ok', 'text/plain'); return
+            if p.path == '/missions/upsert':
+                self._send(200, json.dumps({'missions': upsert_mission(payload)}, ensure_ascii=False), 'application/json; charset=utf-8'); return
+            if p.path == '/missions/complete':
+                mid = str(payload.get('id') or '').strip()
+                if not re.fullmatch(r'[A-Za-z0-9_-]{3,64}', mid):
+                    self._send(400, 'bad id', 'text/plain'); return
+                ok = complete_mission(mid)
+                self._send(200 if ok else 404, 'ok' if ok else 'not found', 'text/plain'); return
+            if p.path == '/missions/delete':
+                mid = str(payload.get('id') or '').strip()
+                if not re.fullmatch(r'[A-Za-z0-9_-]{3,64}', mid):
+                    self._send(400, 'bad id', 'text/plain'); return
+                ok = delete_mission(mid)
+                self._send(200 if ok else 404, 'ok' if ok else 'not found', 'text/plain'); return
+            if p.path == '/missions/session-done':
+                mid = str(payload.get('id') or '').strip()
+                t = str(payload.get('session_id') or '').strip()
+                if not re.fullmatch(r'[A-Za-z0-9_-]{3,64}', mid) or not re.fullmatch(r'[0-9a-f-]{36}', t):
+                    self._send(400, 'bad id', 'text/plain'); return
+                ok = complete_mission_session(mid, t)
+                self._send(200 if ok else 404, 'ok' if ok else 'not found', 'text/plain'); return
 
             if not re.fullmatch(r'[0-9a-f-]{36}', sid):
                 self._send(400, 'bad id', 'text/plain'); return
@@ -1129,12 +1677,17 @@ class H(BaseHTTPRequestHandler):
                     self._send(400, 'empty', 'text/plain'); return
                 rename_session(sid, name); self._send(200, 'ok', 'text/plain')
             elif p.path == '/openfolder':
+                require_session_in_scope(sid)
                 folder = STATE_DIR / sid
                 if folder.exists():
                     subprocess.Popen(['explorer.exe', str(folder)], shell=False)
                 self._send(200, 'ok', 'text/plain')
             else:
                 self._send(404, 'nope', 'text/plain')
+        except PermissionError as e:
+            self._send(403, str(e), 'text/plain')
+        except UnsafeResumeError as e:
+            self._send(409, str(e), 'text/plain')
         except Exception as e:
             self._send(500, f'err: {e}', 'text/plain')
 
@@ -1148,5 +1701,5 @@ if __name__ == '__main__':
     try: 
         if '--no-browser' not in sys.argv: webbrowser.open(url)
     except: pass
-    try: HTTPServer(('127.0.0.1', PORT), H).serve_forever()
+    try: ThreadingHTTPServer(('127.0.0.1', PORT), H).serve_forever()
     except KeyboardInterrupt: print('\n已停止')

@@ -1,8 +1,8 @@
 # 🗂️ Copilot History Dashboard
 
-> 把 **GitHub Copilot CLI** 本机历史对话变成可视化看板：分类 / 合并 / 搜索 / 一键恢复，外加一个 *Her* 风格的「作战空间」视图。
+> 把 **GitHub Copilot CLI** 本机历史对话变成可视化看板：分类 / 合并 / 搜索 / 一键恢复，外加一个 *Her* 风格的 Mission Queue 作战空间。
 >
-> Turn your local **GitHub Copilot CLI** chat history into a visual kanban: categorize, merge, search, one-click resume — plus a *Her*-inspired spatial "war room" view.
+> Turn your local **GitHub Copilot CLI** chat history into a visual kanban: categorize, merge, search, one-click resume — plus a *Her*-inspired Mission Queue war room.
 
 ![Python](https://img.shields.io/badge/python-3.8%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey) ![No Cloud](https://img.shields.io/badge/cloud-zero-success)
 
@@ -23,12 +23,14 @@
 
 ### ✨ 能做什么
 
-- 🧠 **自动分类**：按关键词把对话分到「技能 / 客户 / 数据 / 学习 / 工具 / 其他」六大模块
+- 🧠 **自动分类**：按关键词把对话分到「Scout / 技能 / 客户 / 汇报 / 学习 / 工具 / 其他」模块
 - 🔗 **拖拽合并**：相似主题对话拖到一起，自动合并成一个任务
 - 📂 **改分类**：把任意 chat 拖到别的模块
 - ▶️ **一键恢复**：点开任何 chat → 详情页 → 「在 Copilot CLI 继续」按钮
 - 🗑️ **彻底清理**：测试/临时对话可删除（含 DB 行 + session-state 文件）
-- ✨ **作战空间** `/space`：黑金科技风第三空间，模块可拖拽缩放，模拟电影 *Her* 式工作面板
+- ✨ **作战空间** `/space`：NOW / NEXT / LOOP / PARKED 四个漂浮 Mission 模块，任务可拖拽流转
+- 🏆 **闭环反馈**：每个小 session 都可以 Done，完成后有胜利音效 + 撒花
+- ✅ **+Mission 勾选器**：从主看板已有任务中勾选加入 Mission Queue，取消勾选即移除
 
 ### 🔒 数据隐私（重要）
 
@@ -64,12 +66,14 @@
 
 | Feature | Description |
 |---|---|
-| 🧠 Auto-categorize | Sorts chats into 6 modules by keyword |
+| 🧠 Auto-categorize | Sorts chats into Scout / Skills / Customer / Reporting / Learning / Tools / Other |
 | 🔗 Drag to merge | Combine related chats into one task |
 | 📂 Re-categorize | Drag any chat to a different module |
 | ▶️ One-click resume | Jump straight back into any past Copilot CLI session |
 | 🗑️ Clean delete | Remove test/temp chats fully (DB row + session-state) |
-| ✨ Spatial view | A *Her*-style "war room" canvas at `/space` |
+| ✨ Mission Queue | NOW / NEXT / LOOP / PARKED floating modules at `/space` |
+| 🏆 Completion FX | Mark session-level subtasks as Done with victory sound + confetti |
+| ✅ Add by checkbox | Add/remove existing dashboard tasks into Mission Queue via checkboxes |
 
 ### 🔒 Privacy
 
