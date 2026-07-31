@@ -1,8 +1,8 @@
 # 🗂️ Copilot History Dashboard
 
-> 把 **GitHub Copilot CLI** 本机历史对话变成可视化看板：分类 / 合并 / 搜索 / 一键恢复，外加一个 *Her* 风格的 Mission Queue 作战空间。
+> 把 **GitHub Copilot CLI 与桌面端**本机历史对话变成可视化看板：分类 / 合并 / 搜索 / 一键恢复，外加一个 *Her* 风格的 Mission Queue 作战空间。
 >
-> Turn your local **GitHub Copilot CLI** chat history into a visual kanban: categorize, merge, search, one-click resume — plus a *Her*-inspired Mission Queue war room.
+> Turn your local **GitHub Copilot CLI and desktop** chat history into a visual kanban: categorize, merge, search, one-click resume — plus a *Her*-inspired Mission Queue war room.
 
 ![Python](https://img.shields.io/badge/python-3.8%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey) ![No Cloud](https://img.shields.io/badge/cloud-zero-success)
 
@@ -23,7 +23,8 @@
 
 ### ✨ 能做什么
 
-- 🧠 **自动分类**：按关键词把对话分到「Scout / 技能 / 客户 / 汇报 / 学习 / 工具 / 其他」模块
+- 🐙 **GitHub Desktop 入口**：按 `host_type` 自动识别桌面端会话并放入独立模块
+- 🧠 **自动分类**：按关键词把其他对话分到「Scout / 技能 / 客户 / 汇报 / 学习 / 工具 / 其他」模块
 - 🔗 **拖拽合并**：相似主题对话拖到一起，自动合并成一个任务
 - 📂 **改分类**：把任意 chat 拖到别的模块
 - ▶️ **一键恢复**：点开任何 chat → 详情页 → 「在 Copilot CLI 继续」按钮
@@ -66,6 +67,7 @@
 
 | Feature | Description |
 |---|---|
+| 🐙 GitHub Desktop | Detects desktop sessions by source and groups them in a dedicated module |
 | 🧠 Auto-categorize | Sorts chats into Scout / Skills / Customer / Reporting / Learning / Tools / Other |
 | 🔗 Drag to merge | Combine related chats into one task |
 | 📂 Re-categorize | Drag any chat to a different module |

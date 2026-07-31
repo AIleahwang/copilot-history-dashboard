@@ -14,6 +14,7 @@ PORT = 8765
 PROJECT_LABEL = 'General / Personal'
 EXCLUDED_CWD_MARKERS = ('clawpilot',)
 SCOUT_CWD_MARKER = 'scout'
+GITHUB_DESKTOP_HOST_TYPE = 'github'
 
 def session_scope_sql(alias='s'):
     cwd = f"LOWER(COALESCE({alias}.cwd,''))"
@@ -21,6 +22,9 @@ def session_scope_sql(alias='s'):
 
 def is_scout_cwd(cwd):
     return SCOUT_CWD_MARKER in (cwd or '').lower()
+
+def is_github_desktop_session(host_type):
+    return (host_type or '').lower() == GITHUB_DESKTOP_HOST_TYPE
 
 def scoped_existing_ids(ids):
     valid = sorted({sid for sid in ids if re.fullmatch(r'[0-9a-f-]{36}', sid or '')})
@@ -45,6 +49,7 @@ def require_session_in_scope(sid):
         raise PermissionError(f'session is outside {PROJECT_LABEL} dashboard scope')
 
 CATS = [
+    ('🐙 GitHub Desktop', []),
     ('🛰️ Scout', ['scout']),
     ('🧠 技能 / 数字分身', ['skill', 'openclaw', '分身', 'wechat']),
     ('💼 客户 & 商务', ['ptu', 'datazone', 'claude', 'gpt', 'justification', 'tpm', 'bedrock']),
@@ -53,7 +58,9 @@ CATS = [
     ('🛠️ 工具 & 自助', ['email', '窗口', 'visualize', 'history', 'coding', 'dashboard', '看板']),
 ]
 
-def categorize(summary, ask, cwd=''):
+def categorize(summary, ask, cwd='', host_type=''):
+    if is_github_desktop_session(host_type):
+        return '🐙 GitHub Desktop'
     if is_scout_cwd(cwd):
         return '🛰️ Scout'
     t = ((summary or '') + ' ' + (ask or '')).lower()
@@ -213,6 +220,7 @@ def fetch_sessions():
     con.row_factory = sqlite3.Row
     rows = con.execute(f"""
       SELECT s.id, s.summary, s.created_at, s.updated_at, s.cwd,
+        s.host_type, s.repository,
         (SELECT COUNT(*) FROM turns WHERE session_id=s.id) turns,
         (SELECT user_message FROM turns WHERE session_id=s.id AND user_message IS NOT NULL ORDER BY turn_index LIMIT 1) ask
       FROM sessions s
@@ -257,7 +265,12 @@ def fetch_sessions():
         # Strip skill-context blocks + collapse whitespace, cap to 4000 chars
         body = re.sub(r'<skill-context.*?</skill-context>', '', bodies.get(r['id'], ''), flags=re.S)
         body = re.sub(r'\s+', ' ', body).strip()[:8000]
-        cat = '🛰️ Scout' if is_scout_cwd(r['cwd']) else (overrides.get(r['id']) or categorize(r['summary'], r['ask'], r['cwd']))
+        if is_github_desktop_session(r['host_type']):
+            cat = '🐙 GitHub Desktop'
+        elif is_scout_cwd(r['cwd']):
+            cat = '🛰️ Scout'
+        else:
+            cat = overrides.get(r['id']) or categorize(r['summary'], r['ask'], r['cwd'], r['host_type'])
         out.append(dict(id=r['id'], summary=clean_summary(r['summary'], ask),
                         raw_summary=r['summary'] or '',
                         date=r['created_at'][:10],
@@ -270,6 +283,8 @@ def fetch_sessions():
                         ask=ask[:240],
                         body=body,
                         cat=cat,
+                        source='github-desktop' if is_github_desktop_session(r['host_type']) else 'cli',
+                        repository=r['repository'] or '',
                         group_id=gid,
                         is_primary=is_primary,
                         group_name=(ginfo or {}).get('name', '') if ginfo else '',
@@ -681,8 +696,8 @@ def session_detail(sid):
         'skipped_turns': skipped_turns,
         'first_ask': chain[0]['user'] if chain else '',
         'last_ask': chain[-1]['user'] if chain else '',
-        'cat': categorize(s['summary'], chain[0]['user'] if chain else '', s['cwd']),
-        'cat_color': CAT_COLORS.get(categorize(s['summary'], chain[0]['user'] if chain else '', s['cwd']), '#a0aec0'),
+        'cat': categorize(s['summary'], chain[0]['user'] if chain else '', s['cwd'], s['host_type']),
+        'cat_color': CAT_COLORS.get(categorize(s['summary'], chain[0]['user'] if chain else '', s['cwd'], s['host_type']), '#a0aec0'),
         'chain': chain,
         'artifacts': artifacts,
         'plan_preview': plan_preview,
@@ -711,6 +726,7 @@ def resume_session(sid):
 
 # Category color coding (semantic, ADHD-friendly consistent across UI)
 CAT_COLORS = {
+    '🐙 GitHub Desktop': '#f0f6fc',
     '🛰️ Scout': '#9FE870',
     '🧠 技能 / 数字分身': '#a78bfa',
     '💼 客户 & 商务': '#fb923c',
