@@ -1,11 +1,11 @@
 """Copilot 对话看板 · 本地服务
 运行: python server.py  → 浏览器访问 http://localhost:8765
 """
-import sqlite3, os, re, html, json, shutil, subprocess, webbrowser, sys, uuid
+import sqlite3, os, re, html, json, shutil, subprocess, webbrowser, sys, uuid, threading, time
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
-from datetime import datetime
+from datetime import datetime, timezone
 
 HOME = Path(os.environ['USERPROFILE'])
 DB = HOME / '.copilot' / 'session-store.db'
@@ -15,6 +15,12 @@ PROJECT_LABEL = 'General / Personal'
 EXCLUDED_CWD_MARKERS = ('clawpilot',)
 SCOUT_CWD_MARKER = 'scout'
 GITHUB_DESKTOP_HOST_TYPE = 'github'
+AUTO_CLEAN_EMPTY_SESSIONS = os.environ.get(
+    'COPILOT_DASHBOARD_KEEP_EMPTY', ''
+).strip().lower() not in ('1', 'true', 'yes')
+EMPTY_SESSION_GRACE_SECONDS = 180
+EMPTY_CLEANUP_INTERVAL_SECONDS = 30
+_EMPTY_CLEANUP_LOCK = threading.Lock()
 
 def session_scope_sql(alias='s'):
     cwd = f"LOWER(COALESCE({alias}.cwd,''))"
@@ -194,6 +200,171 @@ def build_clean_chain(turns):
         item.pop('_canon', None)
     return chain, skipped
 
+def _parse_db_timestamp(value):
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(str(value).replace('Z', '+00:00'))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+def _session_is_recent(row, grace_seconds):
+    if grace_seconds <= 0:
+        return False
+    touched = _parse_db_timestamp(row['updated_at'] or row['created_at'])
+    if touched is None:
+        return True
+    return (datetime.now(timezone.utc) - touched).total_seconds() < grace_seconds
+
+def _session_has_active_marker(sid):
+    folder = STATE_DIR / sid
+    if not folder.exists():
+        return False
+    for marker in folder.glob('inuse.*'):
+        match = re.fullmatch(r'inuse\.(\d+)(?:\.lock)?', marker.name)
+        if not match:
+            return True
+        try:
+            os.kill(int(match.group(1)), 0)
+            return True
+        except OSError:
+            try:
+                marker.unlink()
+            except OSError:
+                pass
+    return False
+
+def _session_is_truly_empty(summary, turns):
+    """Only remove shell sessions that contain neither a title nor a real turn."""
+    chain, _ = build_clean_chain(turns)
+    return not chain and not (summary or '').strip()
+
+def _session_related_tables(con):
+    related = []
+    rows = con.execute("""
+        SELECT name FROM sqlite_master
+        WHERE type='table' AND name NOT LIKE 'sqlite_%'
+        ORDER BY name
+    """).fetchall()
+    for row in rows:
+        name = row[0]
+        if name == 'sessions':
+            continue
+        quoted = name.replace('"', '""')
+        columns = {col[1] for col in con.execute(f'PRAGMA table_info("{quoted}")')}
+        if 'session_id' in columns:
+            related.append(name)
+    return related
+
+def _delete_session_rows(con, sid):
+    for table in _session_related_tables(con):
+        quoted = table.replace('"', '""')
+        try:
+            con.execute(f'DELETE FROM "{quoted}" WHERE session_id=?', (sid,))
+        except sqlite3.OperationalError:
+            if table != 'search_index':
+                raise
+    con.execute("DELETE FROM sessions WHERE id=?", (sid,))
+
+def cleanup_empty_sessions(grace_seconds=EMPTY_SESSION_GRACE_SECONDS):
+    """Delete inactive sessions with no meaningful user or assistant content."""
+    if not AUTO_CLEAN_EMPTY_SESSIONS or not DB.exists():
+        return []
+    if not _EMPTY_CLEANUP_LOCK.acquire(blocking=False):
+        return []
+    deleted = []
+    try:
+        ro = sqlite3.connect(f'file:{DB}?mode=ro', uri=True)
+        ro.row_factory = sqlite3.Row
+        try:
+            session_rows = ro.execute(f"""
+                SELECT s.id, s.summary, s.created_at, s.updated_at
+                FROM sessions s
+                WHERE {session_scope_sql('s')}
+            """).fetchall()
+            turn_rows = ro.execute(f"""
+                SELECT t.session_id, t.turn_index, t.user_message,
+                       t.assistant_response, t.timestamp
+                FROM turns t
+                JOIN sessions s ON s.id=t.session_id
+                WHERE {session_scope_sql('s')}
+                ORDER BY t.session_id, t.turn_index
+            """).fetchall()
+        finally:
+            ro.close()
+
+        turns_by_sid = {}
+        for turn in turn_rows:
+            turns_by_sid.setdefault(turn['session_id'], []).append(turn)
+        candidates = [
+            row for row in session_rows
+            if _session_is_truly_empty(
+                row['summary'], turns_by_sid.get(row['id'], []))
+            and not _session_is_recent(row, grace_seconds)
+            and not _session_has_active_marker(row['id'])
+        ]
+        if not candidates:
+            return []
+
+        con = sqlite3.connect(DB, timeout=10)
+        con.row_factory = sqlite3.Row
+        try:
+            con.execute('BEGIN IMMEDIATE')
+            for candidate in candidates:
+                sid = candidate['id']
+                current = con.execute(f"""
+                    SELECT s.id, s.summary, s.created_at, s.updated_at
+                    FROM sessions s
+                    WHERE s.id=? AND {session_scope_sql('s')}
+                """, (sid,)).fetchone()
+                if not current or _session_is_recent(current, grace_seconds) or _session_has_active_marker(sid):
+                    continue
+                current_turns = con.execute("""
+                    SELECT turn_index, user_message, assistant_response, timestamp
+                    FROM turns WHERE session_id=? ORDER BY turn_index
+                """, (sid,)).fetchall()
+                if not _session_is_truly_empty(current['summary'], current_turns):
+                    continue
+                _delete_session_rows(con, sid)
+                deleted.append(sid)
+            con.commit()
+        except Exception:
+            con.rollback()
+            raise
+        finally:
+            con.close()
+
+        for sid in deleted:
+            folder = STATE_DIR / sid
+            if folder.exists():
+                shutil.rmtree(folder)
+        return deleted
+    finally:
+        _EMPTY_CLEANUP_LOCK.release()
+
+def start_empty_cleanup_worker():
+    if not AUTO_CLEAN_EMPTY_SESSIONS:
+        return
+
+    def worker():
+        while True:
+            time.sleep(EMPTY_CLEANUP_INTERVAL_SECONDS)
+            try:
+                removed = cleanup_empty_sessions()
+                if removed:
+                    print(f'🧹 自动清理 {len(removed)} 个空白会话')
+            except (sqlite3.Error, OSError) as error:
+                print(f'⚠ 空白会话自动清理失败: {error}', file=sys.stderr)
+
+    threading.Thread(
+        target=worker,
+        name='copilot-empty-session-cleaner',
+        daemon=True,
+    ).start()
+
 def resume_block_reason_from_chain(chain):
     if not chain:
         return ''
@@ -258,6 +429,9 @@ def fetch_sessions():
     for r in rows:
         ask = clean_turn_user(r['ask'])
         meta = clean_meta.get(r['id'], {'turns': r['turns'], 'skipped_turns': 0, 'resume_block_reason': ''})
+        if AUTO_CLEAN_EMPTY_SESSIONS and _session_is_truly_empty(
+                r['summary'], turns_by_sid.get(r['id'], [])):
+            continue
         gid_info = sid_to_group.get(r['id'])
         gid = gid_info[0] if gid_info else None
         ginfo = gid_info[1] if gid_info else None
@@ -296,20 +470,13 @@ def delete_session(sid):
     require_session_in_scope(sid)
     con = sqlite3.connect(DB, timeout=10)
     try:
-        cur = con.cursor()
-        for tbl in ('turns', 'checkpoints', 'session_files', 'session_refs'):
-            cur.execute(f"DELETE FROM {tbl} WHERE session_id=?", (sid,))
-        try:
-            cur.execute("DELETE FROM search_index WHERE session_id=?", (sid,))
-        except sqlite3.OperationalError:
-            pass
-        cur.execute("DELETE FROM sessions WHERE id=?", (sid,))
+        _delete_session_rows(con, sid)
         con.commit()
     finally:
         con.close()
     folder = STATE_DIR / sid
     if folder.exists():
-        shutil.rmtree(folder, ignore_errors=True)
+        shutil.rmtree(folder)
 
 def rename_session(sid, new_name):
     require_session_in_scope(sid)
@@ -777,6 +944,7 @@ button{{font-family:inherit;font-size:inherit;color:inherit;background:none;bord
 .topbar{{display:flex;align-items:baseline;gap:18px;margin-bottom:6px}}
 .topbar h1{{font-size:22px;font-weight:600;letter-spacing:-.3px}}
 .topbar .meta{{color:var(--text-m);font-size:13px}}
+.clean-status{{display:inline-flex;align-items:center;gap:5px;color:var(--ok);font-size:11px;padding:3px 9px;border:1px solid rgba(158,208,184,.25);background:rgba(158,208,184,.08);border-radius:100px}}
 .hint{{color:var(--text-m);font-size:12px;margin-bottom:20px}}
 .hint kbd{{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:11px;font-family:inherit;color:var(--text-d)}}
 
@@ -816,10 +984,18 @@ button{{font-family:inherit;font-size:inherit;color:inherit;background:none;bord
   border:1px solid color-mix(in srgb, var(--c) 32%, var(--border));
   border-radius:18px;padding:14px;min-height:120px;
   box-shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 8px 30px rgba(0,0,0,.18);
-  transition:.2s;
+  transition:border-color .2s, box-shadow .2s, opacity .2s, filter .2s;
 }}
 .col.drop-here{{border-color:var(--c);box-shadow:0 0 0 2px color-mix(in srgb, var(--c) 50%, transparent), 0 8px 30px rgba(0,0,0,.25)}}
 .col-head{{display:flex;align-items:center;gap:10px;padding:6px 6px 12px;border-bottom:1px solid color-mix(in srgb, var(--c) 28%, transparent);margin-bottom:12px}}
+.col[data-reorderable=true] .col-head{{cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none}}
+.module-grip{{color:color-mix(in srgb,var(--c) 52%,var(--text-m));font-size:17px;line-height:1;letter-spacing:-4px;padding-right:4px;opacity:.55;transition:opacity .15s,color .15s}}
+.col[data-reorderable=true] .col-head:hover .module-grip{{opacity:1;color:var(--c)}}
+.kanban.module-editing .col:not(.module-placeholder){{animation:moduleWiggle .16s ease-in-out infinite alternate;transform-origin:50% 10%}}
+.kanban.module-editing .col:nth-child(even):not(.module-placeholder){{animation-direction:alternate-reverse}}
+@keyframes moduleWiggle{{from{{transform:rotate(-.28deg)}}to{{transform:rotate(.28deg)}}}}
+.col.module-placeholder{{opacity:.24;filter:saturate(.35);border-style:dashed;pointer-events:none}}
+.module-drag-ghost{{position:fixed!important;z-index:1000!important;margin:0!important;pointer-events:none!important;overflow:hidden!important;opacity:.94;cursor:grabbing;transform:rotate(1.2deg) scale(1.025);box-shadow:0 28px 70px rgba(0,0,0,.55),0 0 0 2px color-mix(in srgb,var(--c) 65%,transparent)!important;transition:none!important}}
 .col-head .ic{{font-size:18px}}
 .col-head .title{{flex:1;color:#fff;font-weight:600;letter-spacing:.2px;text-shadow:0 1px 0 rgba(0,0,0,.25);font-size:14px}}
 .col-head .count{{background:color-mix(in srgb, var(--c) 28%, transparent);color:#fff;padding:2px 10px;border-radius:100px;font-size:11px;font-weight:700;letter-spacing:.5px;border:1px solid color-mix(in srgb, var(--c) 50%, transparent)}}
@@ -957,10 +1133,11 @@ button{{font-family:inherit;font-size:inherit;color:inherit;background:none;bord
 <div class=topbar>
   <h1>🗂️ Memory</h1>
   <span class=meta id=countMeta>{total} 段对话</span>
+  {'<span class=clean-status title="空白会话会在安全缓冲期后从数据库和本地状态目录中彻底删除">🧹 空白自动清理</span>' if AUTO_CLEAN_EMPTY_SESSIONS else ''}
   <div style="flex:1"></div>
   <a href="/space" style="padding:7px 14px;border-radius:100px;background:linear-gradient(135deg,rgba(232,164,120,.2),rgba(247,146,178,.15));border:1px solid rgba(232,164,120,.4);color:var(--accent);font-size:12px;letter-spacing:1px;text-decoration:none;text-transform:uppercase;transition:.2s" onmouseover="this.style.background='linear-gradient(135deg,rgba(232,164,120,.35),rgba(247,146,178,.25))'" onmouseout="this.style.background='linear-gradient(135deg,rgba(232,164,120,.2),rgba(247,146,178,.15))'">✨ 作战空间</a>
 </div>
-<div class=hint>按 <kbd>/</kbd> 搜索 · 拖卡片到<b style="color:var(--accent)">另一卡片</b>=合并 · 拖到<b style="color:var(--ok)">列空白处</b>=改分类 · <kbd>📌</kbd> 固定 · <kbd>Esc</kbd> 关闭</div>
+<div class=hint>按 <kbd>/</kbd> 搜索 · <b style="color:var(--accent)">长按模块标题</b>拖动排序 · 拖卡片到<b style="color:var(--accent)">另一卡片</b>=合并 · 拖到<b style="color:var(--ok)">列空白处</b>=改分类 · <kbd>📌</kbd> 固定 · <kbd>Esc</kbd> 关闭</div>
 
 <div class=controls>
   <div class=search-row>
@@ -1107,8 +1284,24 @@ function renderStats(){{
 
 // Build category color lookup from server-side
 const CAT_COLOR = {cat_color_json};
-const CAT_ORDER = {cat_order_json};
+const DEFAULT_CAT_ORDER = {cat_order_json};
+const CAT_ORDER_KEY = 'classic_category_order_v1';
 const CAT_ICON = {cat_icon_json};
+function normalizeCategoryOrder(value){{
+  const requested = Array.isArray(value) ? value : [];
+  const valid = requested.filter((cat, index) =>
+    DEFAULT_CAT_ORDER.includes(cat) && requested.indexOf(cat) === index);
+  DEFAULT_CAT_ORDER.forEach(cat => {{ if(!valid.includes(cat)) valid.push(cat); }});
+  return valid;
+}}
+function loadCategoryOrder(){{
+  try{{ return normalizeCategoryOrder(JSON.parse(localStorage.getItem(CAT_ORDER_KEY)||'[]')); }}
+  catch(e){{ return DEFAULT_CAT_ORDER.slice(); }}
+}}
+let CAT_ORDER = loadCategoryOrder();
+function saveCategoryOrder(){{
+  localStorage.setItem(CAT_ORDER_KEY, JSON.stringify(CAT_ORDER));
+}}
 
 function bodySnippet(s, q){{
   if(!q || !s.body) return '';
@@ -1191,6 +1384,8 @@ function renderGrid(){{
   visible.forEach(s => {{ if(!byCat[s.cat]) byCat[s.cat]=[]; byCat[s.cat].push(s); }});
 
   const showCats = (state.cat==='all' || state.cat==='pinned') ? CAT_ORDER : [state.cat];
+  const canReorder = !state.q && showCats.length > 1 &&
+    (state.cat === 'all' || state.cat === 'pinned');
   const k = document.getElementById('kanban');
   k.innerHTML = showCats.map(c => {{
     const items = byCat[c] || [];
@@ -1201,12 +1396,14 @@ function renderGrid(){{
     const color = CAT_COLOR[c] || '#a0aec0';
     const icon = (CAT_ICON[c] || c).split(' ')[0];
     const title = c.replace(/^[^\\s]+\\s*/, '');
-    return `<div class=col style="--c:${{color}}" data-cat="${{esc(c)}}"
+    return `<div class=col style="--c:${{color}}" data-cat="${{esc(c)}}" data-reorderable="${{canReorder}}"
       ondragover="onColDragOver(event)" ondragleave="onColDragLeave(event)" ondrop="onColDrop(event)">
-      <div class=col-head>
+      <div class=col-head ${{canReorder?'onpointerdown="modulePressStart(event)" oncontextmenu="event.preventDefault()"':''}}
+        title="${{canReorder?'长按后拖动模块排序':''}}">
         <span class=ic>${{icon}}</span>
         <span class=title>${{esc(title)}}</span>
         <span class=count>${{items.length}}</span>
+        ${{canReorder?'<span class=module-grip aria-hidden=true>⠿</span>':''}}
       </div>
       <div class="col-body ${{expanded?'expanded':''}}">
         ${{items.length ? shown.map(s=>cardHTML(s, state.q)).join('') : '<div class=col-empty>(空)</div>'}}
@@ -1215,6 +1412,168 @@ function renderGrid(){{
       </div>
     </div>`;
   }}).join('');
+}}
+
+// ── iOS-style long-press module reorder ─────────────────────────
+const MODULE_HOLD_MS = 360;
+let MODULE_PRESS = null;
+
+function removeModulePointerListeners(){{
+  document.removeEventListener('pointermove', modulePressMove);
+  document.removeEventListener('pointerup', modulePressEnd);
+  document.removeEventListener('pointercancel', modulePressCancel);
+}}
+function modulePressStart(e){{
+  if(MODULE_PRESS || DRAG_SID || (e.pointerType === 'mouse' && e.button !== 0)) return;
+  const col = e.currentTarget.closest('.col');
+  if(!col || col.dataset.reorderable !== 'true') return;
+  e.preventDefault();
+  MODULE_PRESS = {{
+    pointerId:e.pointerId, col,
+    startX:e.clientX, startY:e.clientY, x:e.clientX, y:e.clientY,
+    active:false, originalOrder:CAT_ORDER.slice(), timer:null, ghost:null,
+  }};
+  MODULE_PRESS.timer = setTimeout(activateModuleDrag, MODULE_HOLD_MS);
+  document.addEventListener('pointermove', modulePressMove, {{passive:false}});
+  document.addEventListener('pointerup', modulePressEnd);
+  document.addEventListener('pointercancel', modulePressCancel);
+}}
+function activateModuleDrag(){{
+  const press = MODULE_PRESS;
+  if(!press || press.active || !press.col.isConnected) return;
+  press.active = true;
+  const rect = press.col.getBoundingClientRect();
+  press.grabX = press.x - rect.left;
+  press.grabY = press.y - rect.top;
+  press.ghostWidth = rect.width;
+  press.ghostHeight = Math.min(rect.height, window.innerHeight * .72);
+  press.ghost = press.col.cloneNode(true);
+  press.ghost.classList.add('module-drag-ghost');
+  press.ghost.classList.remove('module-placeholder', 'drop-here');
+  press.ghost.removeAttribute('data-reorderable');
+  press.ghost.querySelectorAll('[data-id]').forEach(node => node.removeAttribute('data-id'));
+  press.ghost.querySelectorAll('button').forEach(button => button.tabIndex = -1);
+  Object.assign(press.ghost.style, {{
+    width:press.ghostWidth+'px', height:press.ghostHeight+'px',
+  }});
+  document.body.appendChild(press.ghost);
+  press.col.classList.add('module-placeholder');
+  document.getElementById('kanban').classList.add('module-editing');
+  document.body.style.userSelect = 'none';
+  if(navigator.vibrate) navigator.vibrate(24);
+  positionModuleGhost(press.x, press.y);
+}}
+function positionModuleGhost(x, y){{
+  const press = MODULE_PRESS;
+  if(!press || !press.ghost) return;
+  const left = Math.max(8, Math.min(
+    window.innerWidth - press.ghostWidth - 8, x - press.grabX));
+  const top = Math.max(8, Math.min(
+    window.innerHeight - press.ghostHeight - 8, y - press.grabY));
+  press.ghost.style.left = left+'px';
+  press.ghost.style.top = top+'px';
+}}
+function animateModuleShift(grid, mutate){{
+  const columns = [...grid.children].filter(node => node.classList.contains('col'));
+  const before = new Map(columns.map(node => [node, node.getBoundingClientRect()]));
+  mutate();
+  columns.forEach(node => {{
+    const first = before.get(node), last = node.getBoundingClientRect();
+    const dx = first.left - last.left, dy = first.top - last.top;
+    if(Math.abs(dx) > 1 || Math.abs(dy) > 1){{
+      node.animate([
+        {{translate:`${{dx}}px ${{dy}}px`}},
+        {{translate:'0 0'}},
+      ], {{duration:230, easing:'cubic-bezier(.2,.8,.2,1)'}});
+    }}
+  }});
+}}
+function moveModulePlaceholder(x, y){{
+  const press = MODULE_PRESS;
+  if(!press || !press.active) return;
+  const grid = document.getElementById('kanban');
+  const source = press.col;
+  const others = [...grid.children].filter(
+    node => node.classList.contains('col') && node !== source);
+  if(!others.length) return;
+  const pointNode = document.elementFromPoint(x, y);
+  let target = pointNode && pointNode.closest ? pointNode.closest('.col') : null;
+  if(!target || target === source){{
+    target = others.reduce((nearest, node) => {{
+      const rect = node.getBoundingClientRect();
+      const distance = Math.hypot(
+        x - (rect.left + rect.width / 2),
+        y - (rect.top + rect.height / 2));
+      return !nearest || distance < nearest.distance ? {{node, distance}} : nearest;
+    }}, null).node;
+  }}
+  const rect = target.getBoundingClientRect();
+  const sameRow = y >= rect.top && y <= rect.bottom;
+  const after = sameRow ? x > rect.left + rect.width / 2
+                        : y > rect.top + rect.height / 2;
+  if((!after && source.nextElementSibling === target) ||
+     (after && target.nextElementSibling === source)) return;
+  const anchor = after ? target.nextElementSibling : target;
+  animateModuleShift(grid, () => grid.insertBefore(source, anchor));
+}}
+function modulePressMove(e){{
+  const press = MODULE_PRESS;
+  if(!press || e.pointerId !== press.pointerId) return;
+  press.x = e.clientX; press.y = e.clientY;
+  if(!press.active){{
+    if(Math.hypot(e.clientX-press.startX, e.clientY-press.startY) > 9){{
+      clearTimeout(press.timer);
+      removeModulePointerListeners();
+      MODULE_PRESS = null;
+    }}
+    return;
+  }}
+  e.preventDefault();
+  positionModuleGhost(e.clientX, e.clientY);
+  moveModulePlaceholder(e.clientX, e.clientY);
+}}
+function cleanupModuleDrag(){{
+  const press = MODULE_PRESS;
+  if(!press) return;
+  clearTimeout(press.timer);
+  removeModulePointerListeners();
+  if(press.ghost) press.ghost.remove();
+  press.col.classList.remove('module-placeholder');
+  document.getElementById('kanban').classList.remove('module-editing');
+  document.body.style.userSelect = '';
+}}
+function modulePressEnd(e){{
+  const press = MODULE_PRESS;
+  if(!press || e.pointerId !== press.pointerId) return;
+  if(press.active){{
+    const visibleOrder = [...document.getElementById('kanban').children]
+      .filter(node => node.classList.contains('col'))
+      .map(node => node.dataset.cat);
+    const visible = new Set(visibleOrder);
+    CAT_ORDER = normalizeCategoryOrder([
+      ...visibleOrder, ...CAT_ORDER.filter(cat => !visible.has(cat)),
+    ]);
+    saveCategoryOrder();
+    cleanupModuleDrag();
+    MODULE_PRESS = null;
+    toast('模块位置已保存 ✓','ok');
+    return;
+  }}
+  cleanupModuleDrag();
+  MODULE_PRESS = null;
+}}
+function modulePressCancel(){{
+  cancelModuleDrag(true);
+}}
+function cancelModuleDrag(restore){{
+  const press = MODULE_PRESS;
+  if(!press) return;
+  if(restore && press.active){{
+    CAT_ORDER = press.originalOrder;
+  }}
+  cleanupModuleDrag();
+  MODULE_PRESS = null;
+  if(restore && press.active) renderGrid();
 }}
 
 // ── Drag & drop merge ───────────────────────────────────────────
@@ -1375,7 +1734,7 @@ document.querySelectorAll('.sort button').forEach(b=>b.addEventListener('click',
 }}));
 document.addEventListener('keydown',e=>{{
   if(e.key==='/' && e.target.tagName!=='INPUT'){{e.preventDefault();document.getElementById('q').focus()}}
-  if(e.key==='Escape'){{closeModal();document.getElementById('q').blur()}}
+  if(e.key==='Escape'){{cancelModuleDrag(true);closeModal();document.getElementById('q').blur()}}
 }});
 
 // Modal — rich PRD view fetched from /session
@@ -1711,6 +2070,14 @@ if __name__ == '__main__':
     try:
         sys.stdout.reconfigure(encoding='utf-8')
     except Exception: pass
+    if AUTO_CLEAN_EMPTY_SESSIONS:
+        try:
+            removed = cleanup_empty_sessions()
+            if removed:
+                print(f'🧹 已彻底清理 {len(removed)} 个空白会话')
+        except (sqlite3.Error, OSError) as error:
+            print(f'⚠ 启动时清理空白会话失败: {error}', file=sys.stderr)
+        start_empty_cleanup_worker()
     url = f'http://localhost:{PORT}/'
     print(f'🚀 Copilot 看板已启动: {url}')
     print('   Ctrl+C 停止服务')

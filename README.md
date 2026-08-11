@@ -25,10 +25,12 @@
 
 - 🐙 **GitHub Desktop 入口**：按 `host_type` 自动识别桌面端会话并放入独立模块
 - 🧠 **自动分类**：按关键词把其他对话分到「Scout / 技能 / 客户 / 汇报 / 学习 / 工具 / 其他」模块
+- 📱 **模块自由排序**：长按模块标题进入抖动模式，拖动后自动让位并记住布局
 - 🔗 **拖拽合并**：相似主题对话拖到一起，自动合并成一个任务
 - 📂 **改分类**：把任意 chat 拖到别的模块
 - ▶️ **一键恢复**：点开任何 chat → 详情页 → 「在 Copilot CLI 继续」按钮
 - 🗑️ **彻底清理**：测试/临时对话可删除（含 DB 行 + session-state 文件）
+- 🧹 **空白自动清理**：无标题、无有效内容的空壳会话不显示，并在安全缓冲期后清除本地记录
 - ✨ **作战空间** `/space`：NOW / NEXT / LOOP / PARKED 四个漂浮 Mission 模块，任务可拖拽流转
 - 🏆 **闭环反馈**：每个小 session 都可以 Done，完成后有胜利音效 + 撒花
 - ✅ **+Mission 勾选器**：从主看板已有任务中勾选加入 Mission Queue，取消勾选即移除
@@ -69,10 +71,12 @@
 |---|---|
 | 🐙 GitHub Desktop | Detects desktop sessions by source and groups them in a dedicated module |
 | 🧠 Auto-categorize | Sorts chats into Scout / Skills / Customer / Reporting / Learning / Tools / Other |
+| 📱 Reorder modules | Long-press a module header, then drag; nearby modules shift automatically and the layout persists |
 | 🔗 Drag to merge | Combine related chats into one task |
 | 📂 Re-categorize | Drag any chat to a different module |
 | ▶️ One-click resume | Jump straight back into any past Copilot CLI session |
 | 🗑️ Clean delete | Remove test/temp chats fully (DB row + session-state) |
+| 🧹 Blank cleanup | Hides empty shells immediately and removes inactive blank records after a safety grace period |
 | ✨ Mission Queue | NOW / NEXT / LOOP / PARKED floating modules at `/space` |
 | 🏆 Completion FX | Mark session-level subtasks as Done with victory sound + confetti |
 | ✅ Add by checkbox | Add/remove existing dashboard tasks into Mission Queue via checkboxes |
