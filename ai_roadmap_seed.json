@@ -1,0 +1,490 @@
+{
+  "schema_version": 1,
+  "meta": {
+    "title": "AI Builder Roadmap",
+    "subtitle": "从技术演进到产品信号，再到可输出观点与商业机会",
+    "baseline_as_of": "2026-08-03",
+    "cadence": "每周五 08:30 · Asia/Shanghai",
+    "method": "历史层提供稳定认知框架；周更层只接纳 Follow Builders feed 中可追溯的一手信号。"
+  },
+  "qualifying_score": 70,
+  "tracks": [
+    {
+      "id": "foundations",
+      "label": "理论基础",
+      "description": "计算、符号主义与智能问题的定义"
+    },
+    {
+      "id": "learning",
+      "label": "学习范式",
+      "description": "从手工规则到数据驱动表示学习"
+    },
+    {
+      "id": "architecture",
+      "label": "模型架构",
+      "description": "网络结构、注意力与推理能力的跃迁"
+    },
+    {
+      "id": "scale",
+      "label": "规模化",
+      "description": "算力、数据、训练方法和基础模型"
+    },
+    {
+      "id": "interface",
+      "label": "产品界面",
+      "description": "生成式交互、多模态与自然语言入口"
+    },
+    {
+      "id": "ecosystem",
+      "label": "Agent 与生态",
+      "description": "工具调用、开放生态、企业落地与商业模式"
+    }
+  ],
+  "context_chapters": [
+    {
+      "id": "computers-to-web",
+      "period": "1943–1998",
+      "start_year": 1943,
+      "end_year": 1998,
+      "title": "电脑先学会计算，互联网再把信息连起来",
+      "summary": "早期电脑把规则变成可执行程序；互联网和万维网随后把全球文档、知识与人连接成一个数字世界。后来的 AI 正是在这个数字世界里获得可学习的信息。",
+      "everyday_example": "可以把它理解为：先造出“大脑的硬件”，再修好连接全世界知识的“道路”。",
+      "landmarks": [
+        "1940s：可编程电子计算机出现",
+        "1969：ARPANET 开始连接远程计算机",
+        "1989–1991：万维网把信息组织成网页和链接",
+        "1998 前后：搜索开始帮助普通人找到互联网信息"
+      ],
+      "implication": "没有互联网沉淀的大规模数字知识，今天的大模型就没有足够丰富的学习材料。",
+      "source_url": "https://www.w3.org/History.html"
+    },
+    {
+      "id": "data-cloud-mobile",
+      "period": "1999–2011",
+      "start_year": 1998,
+      "end_year": 2011,
+      "title": "搜索、云和智能手机让数据随处产生",
+      "summary": "搜索、推荐和社交产品记录人们如何使用信息；云计算让企业随时获得大规模算力；智能手机把摄像头、传感器和互联网放进每个人口袋。",
+      "everyday_example": "互联网从“在线图书馆”变成了一个持续观察、反馈和更新的生活空间。",
+      "landmarks": [
+        "搜索与推荐形成数据反馈循环",
+        "2006：云计算把服务器变成按需使用的公共能力",
+        "2007 以后：智能手机让图像、位置和行为数据快速增长"
+      ],
+      "implication": "AI 爆发依赖的不只是算法，还依赖随处产生的数据、可弹性扩展的算力和触达大众的终端。",
+      "source_url": "https://aws.amazon.com/blogs/aws/amazon_ec2_beta/"
+    },
+    {
+      "id": "deep-learning-perception",
+      "period": "2012–2016",
+      "start_year": 2011,
+      "end_year": 2017,
+      "title": "机器开始看懂图片、声音和语言",
+      "summary": "大数据、GPU 和深度神经网络第一次稳定组合起来，让机器不再只执行人工规则，而是从大量样本中自己学习特征。",
+      "everyday_example": "相册自动识别人脸、语音助手听懂指令、翻译质量提升，都来自这一阶段的能力积累。",
+      "landmarks": [
+        "2012：AlexNet 在 ImageNet 上显著领先",
+        "视觉、语音和翻译快速转向深度学习",
+        "2016：AlphaGo 展示学习、搜索与系统工程的组合能力"
+      ],
+      "implication": "当算法、数据、算力和统一评测同时成熟时，研究突破才会迅速变成大众可感知的产品能力。",
+      "source_url": "https://proceedings.neurips.cc/paper/2012/hash/c399862d3b9d6b76c8436e924a68c45b-Abstract.html"
+    },
+    {
+      "id": "internet-scale-models",
+      "period": "2017–2021",
+      "start_year": 2017,
+      "end_year": 2021,
+      "title": "大模型开始从整个互联网学习通用能力",
+      "summary": "Transformer 让模型更高效地学习长文本，预训练把网页、书籍、代码和图片中的模式压缩进同一个模型，再通过少量示例适配不同任务。",
+      "everyday_example": "过去每个任务要单独训练一个程序；现在更像先培养一个“通才”，再教它完成具体工作。",
+      "landmarks": [
+        "2017：Transformer 提出",
+        "2018：BERT 普及预训练与迁移学习",
+        "2020–2021：更大模型展现 few-shot 与跨任务能力"
+      ],
+      "implication": "互联网不仅连接人，也成为训练通用 AI 的知识与语言基础设施。",
+      "source_url": "https://arxiv.org/abs/2005.14165"
+    },
+    {
+      "id": "generative-ai-for-everyone",
+      "period": "2022–2023",
+      "start_year": 2021,
+      "end_year": 2023,
+      "title": "AI 从后台能力变成人人都能对话的产品",
+      "summary": "图像生成和 ChatGPT 把复杂模型包装成自然语言入口。普通人不需要编程，只要描述目标，就能生成文字、图片、代码并获得协助。",
+      "everyday_example": "AI 从藏在搜索、推荐背后的引擎，变成了可以直接交谈和共同创作的界面。",
+      "landmarks": [
+        "2022：生成式图像产品进入大众视野",
+        "2022-11：ChatGPT 发布",
+        "2023：Copilot、开放模型和企业试验同步加速"
+      ],
+      "implication": "最大的产品跃迁往往来自交互门槛骤降，而不只是模型分数提高。",
+      "source_url": "https://github.blog/news-insights/product-news/github-copilot-x-the-ai-powered-developer-experience/"
+    },
+    {
+      "id": "multimodal-agents",
+      "period": "2024–现在",
+      "start_year": 2023,
+      "end_year": 2026,
+      "title": "AI 正从会回答，走向会看、会想、会使用工具",
+      "summary": "原生语音视觉、长上下文、推理模型和工具协议开始组合。AI 不再只生成一段内容，而是理解环境、规划步骤、调用软件并持续完成任务。",
+      "everyday_example": "它更像一个仍需监督的数字同事：能读资料、操作工具、检查结果，但可靠性和权限边界仍是关键。",
+      "landmarks": [
+        "2024：实时多模态和推理模型成为主线",
+        "工具调用与数据连接逐步标准化",
+        "2025 以后：Agent 可靠性、评估、权限和工作流闭环成为竞争焦点"
+      ],
+      "implication": "下一阶段的价值不只是“模型更聪明”，而是 AI 能否在真实世界中安全、可靠地完成一段工作。",
+      "source_url": "https://www.anthropic.com/news/3-5-models-and-computer-use"
+    }
+  ],
+  "history_people": [
+    {
+      "name": "Alan Turing",
+      "period": "1936–1950",
+      "role": "计算理论与机器智能问题",
+      "impact": "把算法写成可计算模型，并提出“机器能否思考”的可操作测试。",
+      "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/ce/Alan_turing_header.jpg/330px-Alan_turing_header.jpg",
+      "profile_url": "https://www.turing.org.uk/",
+      "credit": "Elliott & Fry · Public domain",
+      "credit_url": "https://commons.wikimedia.org/wiki/File:Alan_turing_header.jpg"
+    },
+    {
+      "name": "John McCarthy",
+      "period": "1956–1960s",
+      "role": "AI 领域命名与奠基",
+      "impact": "组织 Dartmouth 研究议程、推广 Lisp，并让 AI 成为一个可持续发展的学术领域。",
+      "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/49/John_McCarthy_Stanford.jpg/330px-John_McCarthy_Stanford.jpg",
+      "profile_url": "https://www-formal.stanford.edu/jmc/",
+      "credit": "null0 · CC BY-SA 2.0",
+      "credit_url": "https://commons.wikimedia.org/wiki/File:John_McCarthy_Stanford.jpg"
+    },
+    {
+      "name": "Geoffrey Hinton",
+      "period": "1986–2012",
+      "role": "反向传播与深度学习",
+      "impact": "长期推动神经网络、表示学习和规模化训练，连接了早期算法与深度学习拐点。",
+      "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Geoffrey_Hinton_in_2026.jpg/960px-Geoffrey_Hinton_in_2026.jpg",
+      "profile_url": "https://www.cs.toronto.edu/~hinton/",
+      "credit": "Cmichel67 · CC BY-SA 4.0",
+      "credit_url": "https://commons.wikimedia.org/wiki/File:Geoffrey_Hinton_in_2026.jpg"
+    },
+    {
+      "name": "Fei-Fei Li",
+      "period": "2009–2012",
+      "role": "ImageNet 与数据基础设施",
+      "impact": "用大规模标注数据和统一评测推动计算机视觉跃迁，证明数据基础设施可以改变研究速度。",
+      "image_url": "https://upload.wikimedia.org/wikipedia/commons/c/c7/Fei-Fei_Li_at_AI_for_Good_2017.jpg",
+      "profile_url": "https://profiles.stanford.edu/fei-fei-li",
+      "credit": "ITU Pictures · CC BY 2.0",
+      "credit_url": "https://commons.wikimedia.org/wiki/File:Fei-Fei_Li_at_AI_for_Good_2017.jpg"
+    },
+    {
+      "name": "Demis Hassabis",
+      "period": "2010–现在",
+      "role": "系统级 AI 与科学发现",
+      "impact": "通过 DeepMind 把深度学习、搜索、强化学习和科学问题组合成系统级突破。",
+      "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Demis_Hassabis%2C_2024_Nobel_Prize_Laureate_in_Chemistry_7_%28cropped%29.jpg/330px-Demis_Hassabis%2C_2024_Nobel_Prize_Laureate_in_Chemistry_7_%28cropped%29.jpg",
+      "profile_url": "https://deepmind.google/about/people/demis-hassabis/",
+      "credit": "John Sears · CC BY-SA 4.0",
+      "credit_url": "https://commons.wikimedia.org/wiki/File:Demis_Hassabis,_2024_Nobel_Prize_Laureate_in_Chemistry_7_(cropped).jpg"
+    },
+    {
+      "name": "Jensen Huang",
+      "period": "1999–现在",
+      "role": "GPU 计算平台",
+      "impact": "把 GPU 从图形硬件推进为通用并行计算平台，为深度学习和基础模型提供规模化算力。",
+      "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/Jen-Hsun_Huang_2025.jpg/330px-Jen-Hsun_Huang_2025.jpg",
+      "profile_url": "https://www.nvidia.com/en-us/about-nvidia/corporate-management/jensen-huang/",
+      "credit": "The White House · Public domain",
+      "credit_url": "https://commons.wikimedia.org/wiki/File:Jen-Hsun_Huang_2025.jpg"
+    }
+  ],
+  "history_organizations": [
+    {
+      "name": "IBM",
+      "period": "1950s–1980s",
+      "role": "早期计算、专家系统与企业 AI",
+      "logo_url": "https://api.iconify.design/simple-icons:ibm.svg",
+      "profile_url": "https://www.ibm.com/history/artificial-intelligence"
+    },
+    {
+      "name": "NVIDIA",
+      "period": "1999–现在",
+      "role": "GPU、CUDA 与 AI 算力平台",
+      "logo_url": "https://api.iconify.design/simple-icons:nvidia.svg",
+      "profile_url": "https://www.nvidia.com/en-us/about-nvidia/ai-computing/"
+    },
+    {
+      "name": "Google DeepMind",
+      "period": "2010–现在",
+      "role": "强化学习、多模态与科学 AI",
+      "logo_url": "https://api.iconify.design/simple-icons:google.svg",
+      "profile_url": "https://deepmind.google/about/"
+    },
+    {
+      "name": "OpenAI",
+      "period": "2015–现在",
+      "role": "基础模型、ChatGPT 与开发平台",
+      "logo_url": "https://api.iconify.design/simple-icons:openai.svg",
+      "profile_url": "https://openai.com/about/"
+    },
+    {
+      "name": "Microsoft",
+      "period": "2019–现在",
+      "role": "Copilot 分发、云平台与企业落地",
+      "logo_url": "https://api.iconify.design/simple-icons:microsoft.svg",
+      "profile_url": "https://www.microsoft.com/en-us/ai"
+    },
+    {
+      "name": "Meta",
+      "period": "2013–现在",
+      "role": "开放研究、PyTorch 与开放模型",
+      "logo_url": "https://api.iconify.design/simple-icons:meta.svg",
+      "profile_url": "https://ai.meta.com/"
+    },
+    {
+      "name": "Anthropic",
+      "period": "2021–现在",
+      "role": "模型安全、工具使用与 Agent 协议",
+      "logo_url": "https://api.iconify.design/simple-icons:anthropic.svg",
+      "profile_url": "https://www.anthropic.com/company"
+    },
+    {
+      "name": "Hugging Face",
+      "period": "2016–现在",
+      "role": "开放模型、数据集与开发者生态",
+      "logo_url": "https://api.iconify.design/simple-icons:huggingface.svg",
+      "profile_url": "https://huggingface.co/about"
+    }
+  ],
+  "rubric": [
+    {
+      "key": "building",
+      "label": "真正 Building",
+      "weight": 40,
+      "gate": 24,
+      "description": "有发布、代码、论文、demo、用户反馈或可验证的工程进展，而非只评论新闻。"
+    },
+    {
+      "key": "originality",
+      "label": "原创观点",
+      "weight": 25,
+      "gate": 15,
+      "description": "给出非共识判断、因果机制或来自一线实践的独有经验。"
+    },
+    {
+      "key": "relevance",
+      "label": "AI Input 价值",
+      "weight": 25,
+      "gate": 15,
+      "description": "能改变认知框架、产品判断、客户对话或下一步行动。"
+    },
+    {
+      "key": "source_quality",
+      "label": "信号质量",
+      "weight": 10,
+      "gate": 0,
+      "description": "一手来源、具体证据、可追溯链接，并尽量避免二手转述。"
+    }
+  ],
+  "eras": [
+    {
+      "id": "computational-intelligence",
+      "period": "1943–1956",
+      "sort_year": 1943,
+      "track": "foundations",
+      "title": "机器智能成为可研究问题",
+      "summary": "神经元的计算模型、图灵测试与 Dartmouth 会议，把“智能能否被机器实现”从哲学问题转成计算研究议程。",
+      "landmarks": [
+        "1943：McCulloch–Pitts 人工神经元",
+        "1950：图灵提出机器智能的可操作测试",
+        "1956：Dartmouth workshop 形成 AI 研究领域"
+      ],
+      "implication": "每一轮 AI 浪潮都始于新的问题表述；先看能力边界如何被重新定义。",
+      "source_url": "https://academic.oup.com/mind/article/LIX/236/433/986238"
+    },
+    {
+      "id": "symbolic-perceptron",
+      "period": "1957–1973",
+      "sort_year": 1957,
+      "track": "learning",
+      "title": "符号推理与感知机并行探索",
+      "summary": "研究者一边用规则表示知识，一边尝试让机器从样本学习；有限算力和数据使早期承诺难以兑现。",
+      "landmarks": [
+        "1957：Rosenblatt 感知机",
+        "1960s：搜索、规划与专家知识表示快速发展",
+        "1973：能力与承诺落差触发资金收缩"
+      ],
+      "implication": "评估技术时要区分实验可行、规模可行和产品可行。",
+      "source_url": "https://www.aiai.ed.ac.uk/events/lighthill1973/"
+    },
+    {
+      "id": "expert-systems",
+      "period": "1974–1992",
+      "sort_year": 1974,
+      "track": "ecosystem",
+      "title": "专家系统证明垂直价值，也暴露维护成本",
+      "summary": "知识工程把专家规则包装成企业系统，创造了早期商业价值；规则获取、脆弱性与维护成本随后成为规模化瓶颈。",
+      "landmarks": [
+        "1970s–1980s：MYCIN、XCON 等垂直专家系统",
+        "1980s：Lisp machine 与企业 AI 市场升温",
+        "1987–1992：成本与预期失配引发第二次 AI winter"
+      ],
+      "implication": "商业机会不只取决于模型能力，还取决于知识维护和工作流总成本。",
+      "source_url": "https://www.computerhistory.org/revolution/artificial-intelligence-robotics/13"
+    },
+    {
+      "id": "backprop-sequence",
+      "period": "1986–1997",
+      "sort_year": 1986,
+      "track": "learning",
+      "title": "反向传播与序列学习奠定现代深度学习",
+      "summary": "可训练的多层网络重新获得关注，LSTM 为长期依赖问题提供了更稳健的序列建模方法。",
+      "landmarks": [
+        "1986：反向传播推动多层神经网络训练",
+        "1989：卷积网络用于手写数字识别",
+        "1997：LSTM 提出"
+      ],
+      "implication": "关键算法常在基础设施成熟前出现；观察“旧方法 + 新规模条件”的组合。",
+      "source_url": "https://www.cs.toronto.edu/~hinton/absps/naturebp.pdf"
+    },
+    {
+      "id": "web-scale-ml",
+      "period": "1998–2011",
+      "sort_year": 1998,
+      "track": "scale",
+      "title": "互联网数据与 GPU 打开规模化机器学习",
+      "summary": "搜索、广告和推荐系统形成数据飞轮，通用 GPU 与分布式计算逐步降低大规模模型训练成本。",
+      "landmarks": [
+        "互联网产品形成持续反馈数据",
+        "统计机器学习成为搜索与推荐核心",
+        "GPU 通用计算为深层网络提供算力基础"
+      ],
+      "implication": "数据闭环和分发渠道，往往比单次模型领先更能形成商业护城河。",
+      "source_url": "https://www.cs.toronto.edu/~hinton/absps/fastnc.pdf"
+    },
+    {
+      "id": "alexnet",
+      "period": "2012",
+      "sort_year": 2012,
+      "track": "learning",
+      "title": "AlexNet 触发深度学习拐点",
+      "summary": "大规模标注数据、GPU 与深层卷积网络组合，在 ImageNet 上显著拉开差距，推动视觉、语音和 NLP 转向深度学习。",
+      "landmarks": [
+        "ImageNet 提供大规模统一评测",
+        "GPU 加速让深层网络训练可行",
+        "端到端表示学习替代大量手工特征"
+      ],
+      "implication": "真正的拐点往往来自算法、算力、数据和评测体系同时成熟。",
+      "source_url": "https://proceedings.neurips.cc/paper/2012/hash/c399862d3b9d6b76c8436e924a68c45b-Abstract.html"
+    },
+    {
+      "id": "representation-generation",
+      "period": "2013–2016",
+      "sort_year": 2013,
+      "track": "architecture",
+      "title": "表示学习走向生成与通用序列建模",
+      "summary": "word embeddings、seq2seq、GAN 与深度强化学习扩展了机器可学习的任务空间，AlphaGo 展示系统级组合能力。",
+      "landmarks": [
+        "2013：word2vec 推动分布式语义表示",
+        "2014：seq2seq 与 GAN",
+        "2016：AlphaGo 结合深度网络、搜索和强化学习"
+      ],
+      "implication": "单一模型突破很重要，但产品级能力通常来自模型、搜索、反馈和系统工程的组合。",
+      "source_url": "https://arxiv.org/abs/1406.2661"
+    },
+    {
+      "id": "transformer",
+      "period": "2017",
+      "sort_year": 2017,
+      "track": "architecture",
+      "title": "Transformer 统一序列建模接口",
+      "summary": "自注意力提升并行训练与长距离依赖建模能力，为后续大语言模型和多模态基础模型提供通用架构。",
+      "landmarks": [
+        "自注意力替代循环结构成为核心计算单元",
+        "并行训练显著改善规模化效率",
+        "同一架构逐步跨越文本、视觉、音频与代码"
+      ],
+      "implication": "架构统一会压低应用创新门槛，并把竞争重心推向数据、算力、产品和分发。",
+      "source_url": "https://arxiv.org/abs/1706.03762"
+    },
+    {
+      "id": "foundation-models",
+      "period": "2018–2020",
+      "sort_year": 2018,
+      "track": "scale",
+      "title": "预训练 + 规模化形成基础模型范式",
+      "summary": "BERT 展示迁移学习价值，GPT 系列展示规模增长带来的 few-shot 能力，模型开始从单任务组件变成通用平台。",
+      "landmarks": [
+        "2018：BERT 推动预训练与下游适配",
+        "2019：GPT-2 展示连贯长文本生成",
+        "2020：GPT-3 展示大规模 few-shot 学习"
+      ],
+      "implication": "基础模型把价值链拆成模型层、工具层、应用层与数据闭环层。",
+      "source_url": "https://arxiv.org/abs/2005.14165"
+    },
+    {
+      "id": "generative-interface",
+      "period": "2021–2022",
+      "sort_year": 2021,
+      "track": "interface",
+      "title": "多模态生成与聊天界面走向大众",
+      "summary": "视觉语言对齐与 diffusion 推动图像生成，ChatGPT 用对话把复杂模型能力包装成低门槛通用入口。",
+      "landmarks": [
+        "2021：CLIP 等视觉语言模型强化跨模态表示",
+        "2022：diffusion 图像生成产品化",
+        "2022-11：ChatGPT 发布"
+      ],
+      "implication": "交互范式变化会创造比单一模型升级更大的产品窗口。",
+      "source_url": "https://github.blog/news-insights/product-news/github-copilot-x-the-ai-powered-developer-experience/"
+    },
+    {
+      "id": "open-model-enterprise",
+      "period": "2023",
+      "sort_year": 2023,
+      "track": "ecosystem",
+      "title": "能力跃迁、开放模型与企业 Copilot 同时加速",
+      "summary": "更强通用模型、开源权重、RAG 和代码 Copilot 推动企业试验；安全、数据边界、成本和评估成为落地核心。",
+      "landmarks": [
+        "GPT-4 提升多任务与多模态能力",
+        "Llama 系列推动开放模型生态",
+        "RAG 与 Copilot 成为企业应用常见架构"
+      ],
+      "implication": "企业购买的不只是模型，而是可治理、可评估、可集成的业务结果。",
+      "source_url": "https://arxiv.org/abs/2303.08774"
+    },
+    {
+      "id": "native-multimodal-reasoning",
+      "period": "2024",
+      "sort_year": 2024,
+      "track": "architecture",
+      "title": "原生多模态、长上下文与推理模型成为主线",
+      "summary": "实时语音视觉交互、长上下文、computer use 与 test-time reasoning 扩大模型可处理的任务长度和复杂度。",
+      "landmarks": [
+        "GPT-4o 推动实时原生多模态交互",
+        "Gemini 1.5 推动长上下文应用",
+        "Claude 3.5、o1 等强化编码、工具使用与推理"
+      ],
+      "implication": "竞争从“回答问题”转向“跨模态理解、规划并完成任务”。",
+      "source_url": "https://blog.google/innovation-and-ai/products/google-gemini-next-generation-model-february-2024/"
+    },
+    {
+      "id": "agent-infrastructure",
+      "period": "2025–现在",
+      "sort_year": 2025,
+      "track": "ecosystem",
+      "title": "Agent 基础设施与工作流重构阶段",
+      "summary": "关注点从单轮生成转向可靠推理、工具调用、上下文工程、协议连接、评估与人机协作；具体产品变化由周更层持续记录。",
+      "landmarks": [
+        "工具与数据连接趋向标准化",
+        "长任务可靠性、可观测性和权限控制成为瓶颈",
+        "垂直 Agent 的价值取决于工作流闭环和分发"
+      ],
+      "implication": "商业机会集中在高价值流程、专有上下文、可信执行与可量化 ROI 的交叉点。",
+      "source_url": "https://www.anthropic.com/news/model-context-protocol"
+    }
+  ],
+  "weekly_updates": []
+}

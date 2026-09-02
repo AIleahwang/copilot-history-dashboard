@@ -1,0 +1,5631 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Builder Roadmap</title>
+  <script>
+    (() => {
+      const param = new URLSearchParams(window.location.search).get("scoutTheme");
+      const theme =
+        param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
+  <style>
+    :root {
+      color-scheme: light;
+      --cp-bg: #f7f4ef;
+      --cp-bg-elevated: #fcfbf8;
+      --cp-surface: #ffffff;
+      --cp-surface-soft: #f5f5f5;
+      --cp-border: #dedede;
+      --cp-border-strong: #919191;
+      --cp-text: #242424;
+      --cp-text-muted: #5c5c5c;
+      --cp-text-soft: #6f6f6f;
+      --cp-accent: #b11f4b;
+      --cp-accent-hover: #9a1a41;
+      --cp-accent-soft: rgba(177, 31, 75, 0.08);
+      --cp-accent-fg: #ffffff;
+      --cp-success: #16a34a;
+      --cp-danger: #dc2626;
+      --cp-warning: #f59e0b;
+      --cp-link: #0078d4;
+      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+      --cp-overlay: rgba(255, 255, 255, 0.8);
+      --cp-panel: rgba(255, 255, 255, 0.86);
+      --cp-panel-strong: rgba(255, 255, 255, 0.96);
+      --cp-sheen: rgba(255, 255, 255, 0.55);
+      --cp-highlight: rgba(177, 31, 75, 0.12);
+    }
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --cp-bg: #3d3b3a;
+      --cp-bg-elevated: #343231;
+      --cp-surface: #292929;
+      --cp-surface-soft: #2e2e2e;
+      --cp-border: #474747;
+      --cp-border-strong: #5f5f5f;
+      --cp-text: #dedede;
+      --cp-text-muted: #919191;
+      --cp-text-soft: #b0b0b0;
+      --cp-accent: #fd8ea1;
+      --cp-accent-hover: #fb7b91;
+      --cp-accent-soft: rgba(253, 142, 161, 0.14);
+      --cp-accent-fg: #1a1a1a;
+      --cp-success: #4ade80;
+      --cp-danger: #f87171;
+      --cp-warning: #fbbf24;
+      --cp-link: #4da6ff;
+      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+      --cp-overlay: rgba(41, 41, 41, 0.88);
+      --cp-panel: rgba(41, 41, 41, 0.72);
+      --cp-panel-strong: rgba(41, 41, 41, 0.96);
+      --cp-sheen: rgba(255, 255, 255, 0.04);
+      --cp-highlight: rgba(253, 142, 161, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+
+    body {
+      margin: 0;
+      max-width: 100%;
+      overflow-x: hidden;
+      background: var(--cp-bg);
+      color: var(--cp-text);
+      font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.55;
+    }
+
+    button,
+    select {
+      color: inherit;
+      font: inherit;
+    }
+
+    button,
+    a {
+      -webkit-tap-highlight-color: var(--cp-highlight);
+    }
+
+    a {
+      color: var(--cp-link);
+    }
+
+    a:focus-visible,
+    button:focus-visible,
+    select:focus-visible {
+      outline: 2px solid var(--cp-accent);
+      outline-offset: 3px;
+    }
+
+    .shell {
+      width: min(1440px, 100%);
+      min-width: 0;
+      margin: 0 auto;
+      padding: 0 32px 80px;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      min-height: 64px;
+      align-items: center;
+      gap: 16px;
+      border-bottom: 1px solid var(--cp-border);
+      background: var(--cp-overlay);
+      backdrop-filter: blur(16px);
+    }
+
+    .topbar.shell {
+      padding-bottom: 0;
+    }
+
+    .brand {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      gap: 10px;
+      color: var(--cp-text);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      text-decoration: none;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 34px;
+      height: 34px;
+      place-items: center;
+      border: 1px solid var(--cp-accent);
+      border-radius: 0.625rem;
+      background: var(--cp-accent-soft);
+      color: var(--cp-accent);
+    }
+
+    .top-links {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+    }
+
+    .top-link,
+    .theme-toggle {
+      min-height: 36px;
+      padding: 7px 12px;
+      border: 1px solid var(--cp-border);
+      border-radius: 0.625rem;
+      background: var(--cp-surface);
+      color: var(--cp-text-muted);
+      cursor: pointer;
+      font-size: 13px;
+      text-decoration: none;
+    }
+
+    .top-link:hover,
+    .theme-toggle:hover {
+      border-color: var(--cp-border-strong);
+      color: var(--cp-text);
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.6fr) minmax(340px, 0.8fr);
+      gap: 24px;
+      padding: 56px 0 32px;
+    }
+
+    .hero > *,
+    main,
+    section {
+      min-width: 0;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      color: var(--cp-accent);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--cp-success);
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      max-width: 780px;
+      margin-bottom: 16px;
+      font-size: clamp(40px, 6vw, 76px);
+      font-weight: 650;
+      letter-spacing: -0.055em;
+      line-height: 0.98;
+    }
+
+    .hero-copy {
+      max-width: 760px;
+      margin-bottom: 24px;
+      color: var(--cp-text-soft);
+      font-size: clamp(16px, 2vw, 20px);
+    }
+
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border: 1px solid var(--cp-border);
+      border-radius: 0.625rem;
+      background: var(--cp-surface);
+      color: var(--cp-text-muted);
+      font-size: 12px;
+    }
+
+    .hero-panel {
+      align-self: stretch;
+      padding: 20px;
+      border: 1px solid var(--cp-border);
+      border-radius: 16px;
+      background: var(--cp-bg-elevated);
+    }
+
+    .hero-panel-label {
+      margin-bottom: 12px;
+      color: var(--cp-text-muted);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .hero-panel h2 {
+      margin-bottom: 10px;
+      font-size: 23px;
+      line-height: 1.25;
+    }
+
+    .hero-panel p {
+      color: var(--cp-text-soft);
+    }
+
+    .section-nav {
+      position: sticky;
+      top: 64px;
+      z-index: 15;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 12px 0;
+      border-top: 1px solid var(--cp-border);
+      border-bottom: 1px solid var(--cp-border);
+      background: var(--cp-bg);
+      scrollbar-width: thin;
+    }
+
+    .section-nav a {
+      flex: 0 0 auto;
+      padding: 7px 12px;
+      border-radius: 0.625rem;
+      color: var(--cp-text-muted);
+      font-size: 13px;
+      text-decoration: none;
+    }
+
+    .section-nav a:hover {
+      background: var(--cp-accent-soft);
+      color: var(--cp-accent);
+    }
+
+    section {
+      scroll-margin-top: 132px;
+      padding: 48px 0 8px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: flex-end;
+      gap: 24px;
+      margin-bottom: 20px;
+    }
+
+    .section-head-copy {
+      flex: 1;
+    }
+
+    .section-kicker {
+      margin-bottom: 6px;
+      color: var(--cp-accent);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .section-head h2 {
+      margin-bottom: 6px;
+      font-size: clamp(26px, 3vw, 38px);
+      letter-spacing: -0.035em;
+      line-height: 1.1;
+    }
+
+    .section-head p {
+      max-width: 760px;
+      margin-bottom: 0;
+      color: var(--cp-text-soft);
+    }
+
+    .week-select {
+      min-width: 180px;
+      padding: 9px 34px 9px 12px;
+      border: 1px solid var(--cp-border);
+      border-radius: 0.625rem;
+      background: var(--cp-surface);
+      cursor: pointer;
+    }
+
+    .grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .grid.two {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .grid.three {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .card {
+      min-width: 0;
+      padding: 20px;
+      border: 1px solid var(--cp-border);
+      border-radius: 16px;
+      background: var(--cp-surface);
+    }
+
+    .card:hover {
+      border-color: var(--cp-border-strong);
+    }
+
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .card-icon {
+      display: grid;
+      flex: 0 0 auto;
+      width: 36px;
+      height: 36px;
+      place-items: center;
+      border-radius: 0.625rem;
+      background: var(--cp-accent-soft);
+      color: var(--cp-accent);
+    }
+
+    .card h3 {
+      margin-bottom: 6px;
+      font-size: 18px;
+      line-height: 1.25;
+    }
+
+    .card p {
+      margin-bottom: 12px;
+      color: var(--cp-text-soft);
+      overflow-wrap: anywhere;
+    }
+
+    .card p:last-child {
+      margin-bottom: 0;
+    }
+
+    .source-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .source-link:hover {
+      text-decoration: underline;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 12px 0;
+    }
+
+    .tag {
+      padding: 3px 8px;
+      border: 1px solid var(--cp-border);
+      border-radius: 0.625rem;
+      background: var(--cp-surface-soft);
+      color: var(--cp-text-muted);
+      font-size: 11px;
+    }
+
+    .tag.accent {
+      border-color: var(--cp-accent);
+      background: var(--cp-accent-soft);
+      color: var(--cp-accent);
+    }
+
+    .summary-banner {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 16px;
+      margin-bottom: 16px;
+      padding: 20px;
+      border: 1px solid var(--cp-accent);
+      border-radius: 16px;
+      background: var(--cp-accent-soft);
+    }
+
+    .summary-index {
+      display: grid;
+      width: 42px;
+      height: 42px;
+      place-items: center;
+      border-radius: 0.625rem;
+      background: var(--cp-accent);
+      color: var(--cp-accent-fg);
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .summary-banner h3 {
+      margin-bottom: 6px;
+      font-size: 21px;
+    }
+
+    .summary-banner p {
+      margin-bottom: 0;
+      color: var(--cp-text-soft);
+    }
+
+    .empty {
+      padding: 36px;
+      border: 1px dashed var(--cp-border-strong);
+      border-radius: 16px;
+      background: var(--cp-surface-soft);
+      color: var(--cp-text-muted);
+      text-align: center;
+    }
+
+    .empty strong {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--cp-text);
+      font-size: 18px;
+    }
+
+    .rubric-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .rubric-item {
+      display: grid;
+      grid-template-columns: 44px minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--cp-border);
+    }
+
+    .rubric-item:last-child {
+      border-bottom: 0;
+    }
+
+    .rubric-item-icon {
+      display: grid;
+      width: 40px;
+      height: 40px;
+      place-items: center;
+      border: 1px solid var(--cp-border-strong);
+      border-radius: 0.625rem;
+      background: var(--cp-surface-soft);
+      color: var(--cp-accent);
+    }
+
+    .rubric-item-icon .pixel-icon {
+      width: 18px;
+      height: 18px;
+    }
+
+    .rubric-item-copy strong {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 13px;
+    }
+
+    .rubric-item-copy span {
+      color: var(--cp-text-soft);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .builder-card {
+      display: grid;
+      grid-template-columns: 76px minmax(0, 1fr);
+      gap: 16px;
+    }
+
+    .score-ring {
+      --score: 0%;
+      display: grid;
+      width: 72px;
+      height: 72px;
+      place-items: center;
+      border-radius: 50%;
+      background: conic-gradient(var(--cp-accent) var(--score), var(--cp-surface-soft) 0);
+    }
+
+    .score-ring::before {
+      grid-area: 1 / 1;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--cp-surface);
+      content: "";
+    }
+
+    .score-ring strong {
+      z-index: 1;
+      color: var(--cp-accent);
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 18px;
+    }
+
+    .builder-meta {
+      margin-bottom: 8px;
+      color: var(--cp-text-muted);
+      font-size: 12px;
+    }
+
+    .score-bars {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 6px;
+      margin: 14px 0;
+    }
+
+    .score-bar {
+      min-width: 0;
+    }
+
+    .score-bar-label {
+      display: flex;
+      justify-content: space-between;
+      gap: 4px;
+      margin-bottom: 4px;
+      color: var(--cp-text-muted);
+      font-size: 10px;
+    }
+
+    .score-track {
+      height: 5px;
+      overflow: hidden;
+      border-radius: 0.625rem;
+      background: var(--cp-surface-soft);
+    }
+
+    .score-fill {
+      width: var(--width);
+      height: 100%;
+      background: var(--cp-accent);
+    }
+
+    .track-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .track-filter {
+      padding: 7px 11px;
+      border: 1px solid var(--cp-border);
+      border-radius: 0.625rem;
+      background: var(--cp-surface);
+      color: var(--cp-text-muted);
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .track-filter:hover,
+    .track-filter.active {
+      border-color: var(--cp-accent);
+      background: var(--cp-accent-soft);
+      color: var(--cp-accent);
+    }
+
+    .timeline {
+      position: relative;
+      display: grid;
+      gap: 12px;
+      padding-left: 28px;
+    }
+
+    .timeline::before {
+      position: absolute;
+      top: 8px;
+      bottom: 8px;
+      left: 8px;
+      width: 1px;
+      background: var(--cp-border-strong);
+      content: "";
+    }
+
+    .timeline-item {
+      position: relative;
+      display: grid;
+      grid-template-columns: 130px minmax(0, 1fr);
+      gap: 20px;
+      padding: 18px;
+      border: 1px solid var(--cp-border);
+      border-radius: 16px;
+      background: var(--cp-surface);
+    }
+
+    .timeline-item::before {
+      position: absolute;
+      top: 24px;
+      left: -25px;
+      width: 11px;
+      height: 11px;
+      border: 3px solid var(--cp-bg);
+      border-radius: 50%;
+      background: var(--cp-accent);
+      content: "";
+    }
+
+    .timeline-period {
+      color: var(--cp-accent);
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .timeline-track {
+      display: block;
+      margin-top: 6px;
+      color: var(--cp-text-muted);
+      font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 11px;
+      font-weight: 400;
+    }
+
+    .timeline-item h3 {
+      margin-bottom: 6px;
+      font-size: 18px;
+    }
+
+    .timeline-item p {
+      margin-bottom: 10px;
+      color: var(--cp-text-soft);
+    }
+
+    .landmarks {
+      display: grid;
+      gap: 5px;
+      margin: 10px 0 12px;
+      padding: 0;
+      list-style: none;
+    }
+
+    .landmarks li {
+      position: relative;
+      padding-left: 16px;
+      color: var(--cp-text-muted);
+      font-size: 12px;
+    }
+
+    .landmarks li::before {
+      position: absolute;
+      left: 0;
+      color: var(--cp-accent);
+      content: "→";
+    }
+
+    .implication {
+      padding: 10px 12px;
+      border-left: 3px solid var(--cp-accent);
+      background: var(--cp-accent-soft);
+      color: var(--cp-text);
+      font-size: 12px;
+    }
+
+    .talking-point {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+    }
+
+    .talking-point .claim {
+      color: var(--cp-text);
+      font-size: 18px;
+      font-weight: 650;
+      line-height: 1.35;
+    }
+
+    .talking-point .evidence {
+      padding: 12px;
+      border-left: 3px solid var(--cp-accent);
+      background: var(--cp-surface-soft);
+      color: var(--cp-text-soft);
+      font-size: 13px;
+    }
+
+    .opportunity-card {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .opportunity-card::before {
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      height: 3px;
+      background: var(--cp-accent);
+      content: "";
+    }
+
+    .confidence {
+      display: inline-flex;
+      margin-bottom: 12px;
+      padding: 3px 8px;
+      border: 1px solid var(--cp-border);
+      border-radius: 0.625rem;
+      color: var(--cp-text-muted);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .opportunity-fields {
+      display: grid;
+      gap: 10px;
+      margin: 14px 0;
+    }
+
+    .opportunity-field {
+      display: grid;
+      grid-template-columns: 84px minmax(0, 1fr);
+      gap: 8px;
+      font-size: 13px;
+    }
+
+    .opportunity-field dt {
+      color: var(--cp-text-muted);
+    }
+
+    .opportunity-field dd {
+      margin: 0;
+      color: var(--cp-text);
+    }
+
+    .watch-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .watch-item {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 14px 16px;
+      border: 1px solid var(--cp-border);
+      border-radius: 0.625rem;
+      background: var(--cp-surface);
+    }
+
+    .watch-number {
+      color: var(--cp-accent);
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-weight: 700;
+    }
+
+    .watch-item strong {
+      display: block;
+      margin-bottom: 2px;
+      font-size: 14px;
+    }
+
+    .watch-item span {
+      color: var(--cp-text-muted);
+      font-size: 12px;
+    }
+
+    .footer {
+      margin-top: 64px;
+      padding: 24px 0;
+      border-top: 1px solid var(--cp-border);
+      color: var(--cp-text-muted);
+      font-size: 12px;
+    }
+
+    .fatal {
+      margin: 40px auto;
+      padding: 24px;
+      border: 1px solid var(--cp-danger);
+      border-radius: 16px;
+      background: var(--cp-surface);
+      color: var(--cp-danger);
+    }
+
+    /* Pixel game skin */
+    body {
+      background-color: var(--cp-bg);
+      background-image:
+        linear-gradient(var(--cp-border) 1px, var(--cp-bg) 1px),
+        linear-gradient(90deg, var(--cp-border) 1px, var(--cp-bg) 1px);
+      background-size: 32px 32px;
+    }
+
+    .topbar {
+      min-height: 72px;
+      border: 2px solid var(--cp-border-strong);
+      border-top: 0;
+      background: var(--cp-bg-elevated);
+      box-shadow: 0 4px 0 var(--cp-border);
+      backdrop-filter: none;
+    }
+
+    .brand {
+      align-items: center;
+      font-family: Consolas, "Courier New", Courier, monospace;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .brand-copy {
+      display: grid;
+      gap: 1px;
+      line-height: 1;
+    }
+
+    .brand-copy small {
+      color: var(--cp-text-muted);
+      font-size: 9px;
+      font-weight: 400;
+      letter-spacing: 0.14em;
+    }
+
+    .brand-mark {
+      position: relative;
+      width: 40px;
+      height: 40px;
+      border: 2px solid var(--cp-accent);
+      border-radius: 0.625rem;
+      background: var(--cp-surface);
+      box-shadow: 3px 3px 0 var(--cp-accent);
+    }
+
+    .pixel-robot {
+      position: relative;
+      display: block;
+      width: 20px;
+      height: 16px;
+      border: 2px solid var(--cp-accent);
+      background: var(--cp-accent-soft);
+    }
+
+    .pixel-robot::before {
+      position: absolute;
+      top: 4px;
+      left: 3px;
+      width: 3px;
+      height: 3px;
+      background: var(--cp-accent);
+      box-shadow: 7px 0 0 var(--cp-accent);
+      content: "";
+    }
+
+    .pixel-robot::after {
+      position: absolute;
+      right: 3px;
+      bottom: 2px;
+      left: 3px;
+      height: 2px;
+      background: var(--cp-accent);
+      content: "";
+    }
+
+    .top-link,
+    .theme-toggle {
+      display: inline-flex;
+      min-height: 40px;
+      align-items: center;
+      gap: 7px;
+      border: 2px solid var(--cp-border-strong);
+      border-radius: 0.625rem;
+      background: var(--cp-surface);
+      box-shadow: 2px 2px 0 var(--cp-border-strong);
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .top-link:hover,
+    .theme-toggle:hover {
+      border-color: var(--cp-accent);
+      box-shadow: 3px 3px 0 var(--cp-accent);
+      color: var(--cp-accent);
+      transform: translate(-1px, -1px);
+    }
+
+    .pixel-icon {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      flex: 0 0 auto;
+      color: currentColor;
+      image-rendering: pixelated;
+      shape-rendering: crispEdges;
+    }
+
+    .hero {
+      grid-template-columns: minmax(0, 1.4fr) minmax(360px, 0.8fr);
+      padding-top: 48px;
+    }
+
+    .hero-main {
+      padding: 28px;
+      border: 2px solid var(--cp-border-strong);
+      border-radius: 16px;
+      background: var(--cp-bg-elevated);
+      box-shadow: 6px 6px 0 var(--cp-border-strong);
+    }
+
+    .eyebrow {
+      padding: 6px 9px;
+      border: 2px solid var(--cp-success);
+      border-radius: 0.625rem;
+      background: var(--cp-surface);
+      font-family: Consolas, "Courier New", Courier, monospace;
+      letter-spacing: 0.12em;
+    }
+
+    .live-dot {
+      border-radius: 0;
+      box-shadow: 4px 0 0 var(--cp-success);
+      animation: pixel-blink 1.2s steps(2, end) infinite;
+    }
+
+    h1 {
+      display: grid;
+      gap: 4px;
+      margin-bottom: 20px;
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: clamp(42px, 6vw, 72px);
+      font-weight: 800;
+      letter-spacing: -0.055em;
+      line-height: 0.88;
+      text-transform: uppercase;
+    }
+
+    h1 .title-line {
+      display: block;
+    }
+
+    h1 .title-accent {
+      color: var(--cp-accent);
+      text-shadow: 4px 4px 0 var(--cp-highlight);
+    }
+
+    .hero-copy {
+      max-width: 680px;
+      font-size: 17px;
+    }
+
+    .pill {
+      border: 2px solid var(--cp-border);
+      border-radius: 0.625rem;
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+    }
+
+    .hero-panel {
+      position: relative;
+      overflow: hidden;
+      border: 2px solid var(--cp-accent);
+      background: var(--cp-surface);
+      box-shadow: 6px 6px 0 var(--cp-accent);
+    }
+
+    .hero-panel::before {
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      height: 8px;
+      background: repeating-linear-gradient(
+        90deg,
+        var(--cp-accent) 0 12px,
+        var(--cp-accent-hover) 12px 20px
+      );
+      content: "";
+    }
+
+    .mission-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 8px 0 14px;
+      color: var(--cp-accent);
+    }
+
+    .mission-header .pixel-icon {
+      width: 28px;
+      height: 28px;
+    }
+
+    .hero-panel-label,
+    .section-kicker {
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .hero-panel h2 {
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 22px;
+    }
+
+    .section-nav {
+      top: 72px;
+      gap: 6px;
+      padding: 10px;
+      border: 2px solid var(--cp-border-strong);
+      border-radius: 0.625rem;
+      background: var(--cp-bg-elevated);
+      box-shadow: 0 4px 0 var(--cp-border);
+    }
+
+    .section-nav a {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--cp-border);
+      background: var(--cp-surface);
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .section-nav a:hover {
+      border-color: var(--cp-accent);
+      background: var(--cp-accent-soft);
+    }
+
+    section {
+      scroll-margin-top: 148px;
+    }
+
+    .section-head {
+      align-items: center;
+      padding-bottom: 12px;
+      border-bottom: 2px dashed var(--cp-border-strong);
+    }
+
+    .section-head h2 {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: clamp(24px, 3vw, 34px);
+      letter-spacing: -0.03em;
+      text-transform: uppercase;
+    }
+
+    .section-head h2::before {
+      width: 10px;
+      height: 10px;
+      background: var(--cp-accent);
+      box-shadow: 4px 4px 0 var(--cp-highlight);
+      content: "";
+    }
+
+    .week-select,
+    .track-filter {
+      border: 2px solid var(--cp-border-strong);
+      background: var(--cp-surface);
+      box-shadow: 2px 2px 0 var(--cp-border-strong);
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .card {
+      position: relative;
+      border: 2px solid var(--cp-border-strong);
+      background: var(--cp-surface);
+      box-shadow: 4px 4px 0 var(--cp-border-strong);
+      transition: transform 0.15s steps(2, end), box-shadow 0.15s steps(2, end);
+    }
+
+    .card::after {
+      position: absolute;
+      top: -2px;
+      right: -2px;
+      width: 10px;
+      height: 10px;
+      border-bottom: 2px solid var(--cp-border-strong);
+      border-left: 2px solid var(--cp-border-strong);
+      background: var(--cp-bg);
+      content: "";
+    }
+
+    .card:hover {
+      border-color: var(--cp-accent);
+      box-shadow: 6px 6px 0 var(--cp-accent);
+      transform: translate(-2px, -2px);
+    }
+
+    .card-icon {
+      width: 42px;
+      height: 42px;
+      border: 2px solid var(--cp-accent);
+      border-radius: 0.625rem;
+      background: var(--cp-accent);
+      color: var(--cp-accent-fg);
+      box-shadow: 3px 3px 0 var(--cp-accent-hover);
+    }
+
+    .card-icon .pixel-icon {
+      width: 22px;
+      height: 22px;
+    }
+
+    .card h3 {
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 16px;
+    }
+
+    .source-link {
+      padding: 5px 7px;
+      border: 1px solid var(--cp-link);
+      border-radius: 0.625rem;
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+    }
+
+    .tag {
+      border-width: 2px;
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 9px;
+      text-transform: uppercase;
+    }
+
+    .summary-banner {
+      position: relative;
+      border: 2px solid var(--cp-accent);
+      background: var(--cp-surface);
+      box-shadow: 5px 5px 0 var(--cp-accent);
+    }
+
+    .summary-index {
+      width: 52px;
+      height: 52px;
+      border: 2px solid var(--cp-accent-hover);
+      border-radius: 0.625rem;
+      box-shadow: 3px 3px 0 var(--cp-accent-hover);
+      font-size: 11px;
+    }
+
+    .builder-card {
+      border-color: var(--cp-accent);
+      box-shadow: 5px 5px 0 var(--cp-accent);
+    }
+
+    .score-ring {
+      display: grid;
+      width: 76px;
+      height: 76px;
+      border: 3px solid var(--cp-accent);
+      border-radius: 0.625rem;
+      background: var(--cp-surface-soft);
+      box-shadow: 4px 4px 0 var(--cp-accent);
+    }
+
+    .score-ring::before {
+      display: none;
+    }
+
+    .score-ring strong {
+      color: var(--cp-accent);
+      font-size: 24px;
+    }
+
+    .score-ring strong::after {
+      display: block;
+      color: var(--cp-text-muted);
+      content: "SCORE";
+      font-size: 8px;
+      letter-spacing: 0.1em;
+    }
+
+    .score-track {
+      height: 9px;
+      border: 1px solid var(--cp-border-strong);
+      border-radius: 0;
+    }
+
+    .score-fill {
+      background: repeating-linear-gradient(
+        90deg,
+        var(--cp-accent) 0 6px,
+        var(--cp-accent-hover) 6px 8px
+      );
+    }
+
+    .track-filter:hover,
+    .track-filter.active {
+      box-shadow: 3px 3px 0 var(--cp-accent);
+    }
+
+    .track-filter {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .timeline {
+      padding-left: 44px;
+    }
+
+    .timeline::before {
+      left: 12px;
+      width: 5px;
+      background: repeating-linear-gradient(
+        to bottom,
+        var(--cp-accent) 0 10px,
+        var(--cp-bg) 10px 18px
+      );
+    }
+
+    .timeline-item {
+      grid-template-columns: 150px minmax(0, 1fr);
+      border: 2px solid var(--cp-border-strong);
+      box-shadow: 4px 4px 0 var(--cp-border-strong);
+    }
+
+    .timeline-item::before {
+      top: 20px;
+      left: -39px;
+      width: 20px;
+      height: 20px;
+      border: 4px solid var(--cp-bg);
+      border-radius: 0;
+      background: var(--cp-success);
+      box-shadow: 2px 2px 0 var(--cp-border-strong);
+    }
+
+    .landmarks li {
+      padding: 7px 8px 7px 28px;
+      border: 1px solid var(--cp-border);
+      background: var(--cp-surface-soft);
+    }
+
+    .landmarks li::before {
+      top: 7px;
+      left: 8px;
+      width: 10px;
+      height: 10px;
+      border: 2px solid var(--cp-success);
+      background: var(--cp-success);
+      color: var(--cp-success);
+      content: "";
+    }
+
+    .implication,
+    .talking-point .evidence {
+      border: 2px solid var(--cp-accent);
+      background: var(--cp-accent-soft);
+    }
+
+    .confidence {
+      border: 2px solid var(--cp-warning);
+      color: var(--cp-warning);
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 9px;
+    }
+
+    .opportunity-field {
+      padding: 7px 0;
+      border-bottom: 1px dashed var(--cp-border);
+    }
+
+    .opportunity-field dt {
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+    }
+
+    .watch-list {
+      margin-top: 20px;
+    }
+
+    .watch-item {
+      border: 2px solid var(--cp-border-strong);
+      background: var(--cp-surface);
+      box-shadow: 3px 3px 0 var(--cp-border-strong);
+    }
+
+    .watch-number {
+      display: grid;
+      width: 34px;
+      height: 34px;
+      place-items: center;
+      border: 2px solid var(--cp-warning);
+      background: var(--cp-surface-soft);
+      color: var(--cp-warning);
+    }
+
+    .watch-number .pixel-icon {
+      width: 16px;
+      height: 16px;
+    }
+
+    .rubric-item {
+      border-bottom: 2px dashed var(--cp-border);
+    }
+
+    .footer {
+      font-family: Consolas, "Courier New", Courier, monospace;
+      letter-spacing: 0.03em;
+    }
+
+    .grid > .card,
+    .timeline-item,
+    .watch-item {
+      animation: content-enter 0.35s steps(4, end) both;
+    }
+
+    @keyframes pixel-blink {
+      50% {
+        opacity: 0.3;
+      }
+    }
+
+    @keyframes content-enter {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 960px) {
+      .hero {
+        grid-template-columns: 1fr;
+      }
+
+      .grid.three {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 720px) {
+      .shell {
+        padding-right: 18px;
+        padding-left: 18px;
+      }
+
+      .top-link.optional {
+        display: none;
+      }
+
+      .hero {
+        padding-top: 36px;
+      }
+
+      .hero-main {
+        width: 100%;
+        max-width: 100%;
+        padding: 20px;
+        overflow: hidden;
+      }
+
+      h1 {
+        font-size: 44px;
+      }
+
+      .hero-panel,
+      .section-nav {
+        width: 100%;
+        max-width: 100%;
+      }
+
+      .section-head {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .week-select {
+        width: 100%;
+      }
+
+      .grid.two,
+      .grid.three {
+        grid-template-columns: 1fr;
+      }
+
+      .builder-card {
+        grid-template-columns: 1fr;
+      }
+
+      .timeline-item {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+
+      .timeline {
+        padding-left: 34px;
+      }
+
+      .timeline-item::before {
+        left: -29px;
+      }
+
+      .score-bars {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .watch-item {
+        grid-template-columns: auto minmax(0, 1fr);
+      }
+
+      .watch-item .source-link {
+        grid-column: 2;
+      }
+
+    }
+
+    /* Machine Editorial Monochrome + Swiss counterpoint grid */
+    body {
+      background-color: var(--cp-surface);
+      background-image: linear-gradient(
+        90deg,
+        var(--cp-surface) calc(100% - 1px),
+        var(--cp-border) 0
+      );
+      background-size: 8.333vw 100%;
+    }
+
+    * {
+      -webkit-tap-highlight-color: var(--cp-sheen);
+    }
+
+    a:focus-visible,
+    button:focus-visible,
+    select:focus-visible {
+      outline-color: var(--cp-text);
+    }
+
+    .shell {
+      width: min(1500px, 100%);
+    }
+
+    .topbar {
+      min-height: 64px;
+      border: 0;
+      border-bottom: 2px solid var(--cp-text);
+      background: var(--cp-surface);
+      box-shadow: none;
+    }
+
+    .brand-mark {
+      border-color: var(--cp-text);
+      border-radius: 0;
+      box-shadow: 3px 3px 0 var(--cp-border-strong);
+      color: var(--cp-text);
+    }
+
+    .pixel-robot {
+      border-color: var(--cp-text);
+      background: var(--cp-surface-soft);
+      color: var(--cp-text);
+    }
+
+    .pixel-robot::before,
+    .pixel-robot::after {
+      background: var(--cp-text);
+    }
+
+    .pixel-robot::before {
+      box-shadow: 7px 0 0 var(--cp-text);
+    }
+
+    .top-link,
+    .theme-toggle {
+      border-color: var(--cp-border-strong);
+      border-radius: 0;
+      box-shadow: none;
+    }
+
+    .top-link:hover,
+    .theme-toggle:hover {
+      border-color: var(--cp-text);
+      box-shadow: 3px 3px 0 var(--cp-border-strong);
+      color: var(--cp-text);
+    }
+
+    .hero {
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 0;
+      padding: 64px 0 40px;
+    }
+
+    .hero-main {
+      position: relative;
+      grid-column: 1 / 9;
+      padding: 36px 48px 40px;
+      border: 2px solid var(--cp-text);
+      border-radius: 0;
+      background: var(--cp-surface);
+      box-shadow: none;
+    }
+
+    .eyebrow {
+      padding: 4px 0 4px 12px;
+      border: 0;
+      border-left: 6px solid var(--cp-success);
+      border-radius: 0;
+      background: var(--cp-surface);
+      color: var(--cp-text);
+    }
+
+    h1 {
+      max-width: 8ch;
+      font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: clamp(56px, 8.5vw, 124px);
+      font-weight: 800;
+      letter-spacing: -0.075em;
+      line-height: 0.82;
+      text-transform: none;
+    }
+
+    h1 .title-accent {
+      color: var(--cp-text);
+      text-shadow: none;
+    }
+
+    .hero-copy {
+      max-width: 620px;
+      margin-top: 28px;
+      font-size: clamp(16px, 1.5vw, 20px);
+    }
+
+    .pill {
+      border-color: var(--cp-border-strong);
+      border-radius: 0;
+      background: var(--cp-surface-soft);
+    }
+
+    .hero-meta .pill:last-child {
+      border-color: var(--cp-text);
+      color: var(--cp-text);
+      font-weight: 700;
+    }
+
+    .hero-panel {
+      grid-column: 9 / 13;
+      padding: 36px 28px 28px;
+      border: 2px solid var(--cp-text);
+      border-left: 0;
+      border-radius: 0;
+      background: var(--cp-surface);
+      box-shadow: none;
+    }
+
+    .hero-panel::before {
+      height: 8px;
+      background: repeating-linear-gradient(
+        90deg,
+        var(--cp-text) 0 12px,
+        var(--cp-border-strong) 12px 20px
+      );
+    }
+
+    .mission-header {
+      color: var(--cp-text);
+    }
+
+    .hero-panel h2,
+    .section-head h2,
+    .card h3 {
+      font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+      text-transform: none;
+    }
+
+    .hero-panel h2 {
+      font-size: clamp(24px, 2.4vw, 36px);
+      letter-spacing: -0.045em;
+      line-height: 1.02;
+    }
+
+    .section-nav {
+      top: 64px;
+      padding: 0;
+      border: 0;
+      border-bottom: 2px solid var(--cp-text);
+      border-radius: 0;
+      background: var(--cp-surface);
+      box-shadow: none;
+    }
+
+    .section-nav a {
+      min-height: 44px;
+      padding: 10px 14px;
+      border: 0;
+      border-right: 1px solid var(--cp-border);
+      border-radius: 0;
+      background: var(--cp-surface);
+    }
+
+    .section-nav a:hover {
+      border-color: var(--cp-border);
+      background: var(--cp-surface-soft);
+      color: var(--cp-text);
+    }
+
+    section {
+      padding-top: 72px;
+    }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 0;
+      align-items: start;
+      margin-bottom: 32px;
+      padding: 0;
+      border-top: 2px solid var(--cp-text);
+      border-bottom: 1px solid var(--cp-text);
+    }
+
+    .section-head::before {
+      grid-column: 1 / 2;
+      min-height: 100%;
+      padding: 12px 10px 24px 0;
+      border-right: 1px solid var(--cp-text);
+      color: var(--cp-text);
+      font-size: clamp(38px, 5vw, 72px);
+      font-weight: 800;
+      letter-spacing: -0.08em;
+      line-height: 0.9;
+    }
+
+    #weekly .section-head::before {
+      content: "01";
+    }
+
+    #builders .section-head::before {
+      content: "02";
+    }
+
+    #evolution .section-head::before {
+      content: "03";
+    }
+
+    #output .section-head::before {
+      content: "04";
+    }
+
+    #opportunities .section-head::before {
+      content: "05";
+    }
+
+    #method .section-head::before {
+      content: "06";
+    }
+
+    .section-head-copy {
+      grid-column: 2 / 10;
+      padding: 14px 24px 24px;
+    }
+
+    .section-head .week-select {
+      grid-column: 10 / 13;
+      align-self: start;
+      margin: 14px 0 0 16px;
+    }
+
+    .section-kicker {
+      color: var(--cp-text-muted);
+    }
+
+    .section-head h2 {
+      max-width: 18ch;
+      font-size: clamp(32px, 4vw, 56px);
+      font-weight: 780;
+      letter-spacing: -0.055em;
+      line-height: 0.95;
+    }
+
+    .section-head h2::before {
+      background: var(--cp-text);
+      box-shadow: 4px 4px 0 var(--cp-border-strong);
+    }
+
+    .week-select,
+    .track-filter {
+      border-radius: 0;
+      box-shadow: none;
+    }
+
+    .grid.two {
+      grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+      gap: 24px;
+    }
+
+    .grid.two > .card:nth-child(even) {
+      margin-top: 48px;
+    }
+
+    .grid.three {
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .grid.three > .card:nth-child(3n + 1) {
+      grid-column: span 5;
+    }
+
+    .grid.three > .card:nth-child(3n + 2) {
+      grid-column: span 4;
+    }
+
+    .grid.three > .card:nth-child(3n) {
+      grid-column: span 3;
+      margin-top: 48px;
+    }
+
+    .card {
+      padding: 22px;
+      border: 0;
+      border-top: 3px solid var(--cp-text);
+      border-bottom: 1px solid var(--cp-border-strong);
+      border-radius: 0;
+      background: var(--cp-surface);
+      box-shadow: none;
+    }
+
+    .card::after {
+      display: none;
+    }
+
+    .card:hover {
+      border-color: var(--cp-text);
+      box-shadow: inset 6px 0 0 var(--cp-text);
+      transform: none;
+    }
+
+    .card-icon {
+      border-color: var(--cp-text);
+      border-radius: 0;
+      background: var(--cp-text);
+      color: var(--cp-surface);
+      box-shadow: 3px 3px 0 var(--cp-border-strong);
+    }
+
+    .tag.accent {
+      border-color: var(--cp-text);
+      background: var(--cp-surface-soft);
+      color: var(--cp-text);
+    }
+
+    .summary-banner {
+      padding: 24px 0;
+      border: 0;
+      border-top: 6px solid var(--cp-text);
+      border-bottom: 1px solid var(--cp-text);
+      border-radius: 0;
+      background: var(--cp-surface);
+      box-shadow: none;
+    }
+
+    .summary-index {
+      width: 64px;
+      height: 64px;
+      border-color: var(--cp-text);
+      border-radius: 0;
+      background: var(--cp-text);
+      color: var(--cp-surface);
+      box-shadow: 4px 4px 0 var(--cp-border-strong);
+    }
+
+    .summary-index .pixel-icon {
+      width: 28px;
+      height: 28px;
+    }
+
+    .builder-card {
+      border-color: var(--cp-text);
+      box-shadow: none;
+    }
+
+    .score-ring {
+      border-color: var(--cp-text);
+      border-radius: 0;
+      background: var(--cp-surface-soft);
+      box-shadow: 4px 4px 0 var(--cp-border-strong);
+    }
+
+    .score-ring strong {
+      color: var(--cp-text);
+    }
+
+    .score-fill {
+      background: repeating-linear-gradient(
+        90deg,
+        var(--cp-text) 0 6px,
+        var(--cp-text-muted) 6px 8px
+      );
+    }
+
+    .track-filter:hover,
+    .track-filter.active {
+      border-color: var(--cp-text);
+      background: var(--cp-surface-soft);
+      box-shadow: 3px 3px 0 var(--cp-border-strong);
+      color: var(--cp-text);
+    }
+
+    .timeline::before {
+      background: repeating-linear-gradient(
+        to bottom,
+        var(--cp-text) 0 10px,
+        var(--cp-bg) 10px 18px
+      );
+    }
+
+    .timeline-item {
+      border: 0;
+      border-top: 2px solid var(--cp-text);
+      border-bottom: 1px solid var(--cp-border-strong);
+      border-radius: 0;
+      box-shadow: none;
+    }
+
+    .timeline-item:nth-child(even) {
+      margin-left: 56px;
+    }
+
+    .timeline-item::before {
+      background: var(--cp-text);
+    }
+
+    .timeline-period {
+      color: var(--cp-text);
+    }
+
+    .landmarks li::before {
+      border-color: var(--cp-text);
+      background: var(--cp-text);
+      color: var(--cp-text);
+    }
+
+    .implication,
+    .talking-point .evidence {
+      border: 0;
+      border-left: 6px solid var(--cp-text);
+      background: var(--cp-surface-soft);
+    }
+
+    .confidence {
+      border-color: var(--cp-text);
+      color: var(--cp-text);
+    }
+
+    .watch-item {
+      border: 0;
+      border-top: 2px solid var(--cp-text);
+      border-radius: 0;
+      box-shadow: none;
+    }
+
+    .watch-number {
+      border-color: var(--cp-text);
+      background: var(--cp-text);
+      color: var(--cp-surface);
+    }
+
+    .footer {
+      border-top: 2px solid var(--cp-text);
+    }
+
+    @media (max-width: 1050px) {
+      .hero {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-main,
+      .hero-panel {
+        grid-column: 1;
+      }
+
+      .hero-panel {
+        border-top: 0;
+        border-left: 2px solid var(--cp-text);
+      }
+
+      .grid.three {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .grid.three > .card:nth-child(n) {
+        grid-column: auto;
+      }
+    }
+
+    @media (max-width: 720px) {
+      body {
+        background-size: 64px 100%;
+      }
+
+      .hero {
+        padding-top: 36px;
+      }
+
+      .hero-main {
+        padding: 24px 18px;
+      }
+
+      h1 {
+        font-size: clamp(44px, 17vw, 68px);
+      }
+
+      .hero-panel {
+        padding: 28px 20px 22px;
+      }
+
+      .section-head {
+        grid-template-columns: 52px minmax(0, 1fr);
+      }
+
+      .section-head::before {
+        grid-column: 1;
+        padding: 12px 8px;
+        font-size: 34px;
+      }
+
+      .section-head-copy {
+        grid-column: 2;
+        padding: 12px 14px 18px;
+      }
+
+      .section-head .week-select {
+        grid-column: 1 / -1;
+        width: calc(100% - 28px);
+        margin: 0 14px 14px;
+      }
+
+      .section-head h2 {
+        font-size: clamp(28px, 10vw, 42px);
+      }
+
+      .grid.two,
+      .grid.three {
+        grid-template-columns: 1fr;
+      }
+
+      .grid.two > .card:nth-child(even),
+      .grid.three > .card:nth-child(n),
+      .timeline-item:nth-child(even) {
+        grid-column: auto;
+        margin-top: 0;
+        margin-left: 0;
+      }
+    }
+
+    /* Midnight Atlas world view + Paper Expedition region layer */
+    body[data-view="map"] .hero,
+    body[data-view="map"] .section-nav,
+    body[data-view="map"] #weekly,
+    body[data-view="map"] #builders,
+    body[data-view="map"] #evolution,
+    body[data-view="map"] #output,
+    body[data-view="map"] #opportunities,
+    body[data-view="map"] #method,
+    body[data-view="map"] .footer,
+    body[data-view="map"] .history-atlas,
+    body[data-view="history"] .atlas-world,
+    body[data-view="history"] .hero,
+    body[data-view="history"] .section-nav,
+    body[data-view="history"] #weekly,
+    body[data-view="history"] #builders,
+    body[data-view="history"] #evolution,
+    body[data-view="history"] #output,
+    body[data-view="history"] #opportunities,
+    body[data-view="history"] #method,
+    body[data-view="history"] .footer {
+      display: none;
+    }
+
+    body[data-view="archive"] .atlas-world,
+    body[data-view="archive"] .history-atlas {
+      display: none;
+    }
+
+    .view-toggle {
+      color: var(--cp-text);
+    }
+
+    .atlas-world {
+      min-height: calc(100vh - 64px);
+      padding: 28px 0 36px;
+    }
+
+    .atlas-masthead {
+      display: grid;
+      grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.7fr);
+      gap: 32px;
+      align-items: end;
+      padding-bottom: 20px;
+      border-bottom: 2px solid var(--cp-text);
+    }
+
+    .atlas-kicker,
+    .atlas-map-label,
+    .atlas-region-kicker,
+    .atlas-city-map-label,
+    .atlas-city-kicker,
+    .atlas-city-meta {
+      font-family: Consolas, "Courier New", Courier, monospace;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .atlas-kicker {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      color: var(--cp-warning);
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .atlas-kicker::before {
+      width: 28px;
+      height: 3px;
+      background: var(--cp-warning);
+      content: "";
+    }
+
+    .atlas-title {
+      max-width: none;
+      margin-bottom: 10px;
+      font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: clamp(50px, 6.8vw, 104px);
+      font-weight: 800;
+      letter-spacing: -0.075em;
+      line-height: 0.83;
+      text-transform: none;
+    }
+
+    .atlas-title span {
+      display: block;
+      color: var(--cp-text-muted);
+    }
+
+    .atlas-subtitle {
+      max-width: 740px;
+      margin-bottom: 0;
+      color: var(--cp-text-soft);
+      font-size: clamp(15px, 1.5vw, 19px);
+      line-height: 1.5;
+    }
+
+    .atlas-guide {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .atlas-guide span {
+      display: grid;
+      min-height: 86px;
+      gap: 10px;
+      align-content: center;
+      justify-items: start;
+      padding: 12px;
+      border: 1px solid var(--cp-border-strong);
+      border-radius: 0.625rem;
+      background: var(--cp-surface);
+    }
+
+    .atlas-guide i {
+      display: grid;
+      width: 34px;
+      height: 34px;
+      place-items: center;
+      border-radius: 0.625rem;
+      background: var(--cp-accent-soft);
+      color: var(--cp-accent);
+      font-style: normal;
+    }
+
+    .atlas-guide .pixel-icon {
+      width: 18px;
+      height: 18px;
+    }
+
+    .atlas-guide b {
+      color: var(--cp-text);
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    .atlas-stage {
+      --focus-x: 50%;
+      --focus-y: 50%;
+      --pan-x: 0%;
+      --pan-y: 0%;
+      position: relative;
+      min-height: min(760px, calc(100vh - 184px));
+      margin-top: 20px;
+      overflow: hidden;
+      border: 2px solid var(--cp-text);
+      background: var(--cp-text);
+      isolation: isolate;
+    }
+
+    html[data-theme="dark"] .atlas-stage {
+      background: var(--cp-surface);
+    }
+
+    .atlas-map-shell {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: var(--cp-text);
+      color: var(--cp-surface);
+    }
+
+    html[data-theme="dark"] .atlas-map-shell {
+      background: var(--cp-surface);
+      color: var(--cp-text);
+    }
+
+    .atlas-map-shell::before,
+    .atlas-map-shell::after {
+      position: absolute;
+      z-index: 0;
+      border: 1px solid currentColor;
+      border-radius: 50%;
+      content: "";
+      opacity: 0.12;
+      pointer-events: none;
+    }
+
+    .atlas-map-shell::before {
+      top: 10%;
+      left: 4%;
+      width: 150px;
+      height: 150px;
+      animation: atlas-contour 5.5s ease-in-out infinite;
+    }
+
+    .atlas-map-shell::after {
+      right: 6%;
+      bottom: 7%;
+      width: 230px;
+      height: 230px;
+      animation: atlas-contour 7s ease-in-out 1s infinite;
+    }
+
+    .atlas-map-viewport {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      transform: translate(0, 0) scale(1);
+      transform-origin: var(--focus-x) var(--focus-y);
+      transition: transform 720ms cubic-bezier(0.2, 0.82, 0.2, 1), filter 500ms ease;
+    }
+
+    .atlas-stage.is-exploring .atlas-map-viewport {
+      filter: saturate(0.82);
+      transform: translate(var(--pan-x), var(--pan-y)) scale(1.14);
+    }
+
+    .atlas-map-art {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .atlas-terrain {
+      fill: var(--cp-text-soft);
+      stroke: var(--cp-surface);
+      stroke-width: 3;
+      transition: fill 250ms ease, stroke 250ms ease, opacity 250ms ease;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .atlas-terrain.atlas-terrain--secondary {
+      fill: var(--cp-text-muted);
+    }
+
+    html[data-theme="dark"] .atlas-terrain {
+      fill: var(--cp-bg-elevated);
+      stroke: var(--cp-border-strong);
+    }
+
+    html[data-theme="dark"] .atlas-terrain.atlas-terrain--secondary {
+      fill: var(--cp-surface-soft);
+    }
+
+    .atlas-stage[data-active-region="weekly"] .atlas-terrain--weekly,
+    .atlas-stage[data-active-region="builders"] .atlas-terrain--builders,
+    .atlas-stage[data-active-region="evolution"] .atlas-terrain--evolution,
+    .atlas-stage[data-active-region="output"] .atlas-terrain--output,
+    .atlas-stage[data-active-region="opportunities"] .atlas-terrain--opportunities,
+    .atlas-stage[data-active-region="method"] .atlas-terrain--method {
+      stroke: var(--cp-warning);
+      stroke-width: 5;
+    }
+
+    .atlas-terrain-detail,
+    .atlas-route-shadow,
+    .atlas-route-line,
+    .atlas-route-branch {
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .atlas-terrain-detail {
+      stroke: var(--cp-border-strong);
+      stroke-width: 2;
+      stroke-dasharray: 9 11;
+    }
+
+    .atlas-map-symbol {
+      fill: none;
+      stroke: var(--cp-surface);
+      stroke-linecap: square;
+      stroke-linejoin: miter;
+      stroke-width: 3;
+      opacity: 0.34;
+      transition: opacity 250ms ease, stroke 250ms ease;
+      vector-effect: non-scaling-stroke;
+    }
+
+    html[data-theme="dark"] .atlas-map-symbol {
+      stroke: var(--cp-text-muted);
+    }
+
+    .atlas-stage[data-active-region="weekly"] .atlas-map-symbol--weekly,
+    .atlas-stage[data-active-region="builders"] .atlas-map-symbol--builders,
+    .atlas-stage[data-active-region="evolution"] .atlas-map-symbol--evolution,
+    .atlas-stage[data-active-region="output"] .atlas-map-symbol--output,
+    .atlas-stage[data-active-region="opportunities"] .atlas-map-symbol--opportunities,
+    .atlas-stage[data-active-region="method"] .atlas-map-symbol--method {
+      stroke: var(--cp-warning);
+      opacity: 0.9;
+    }
+
+    .atlas-route-shadow {
+      stroke: var(--cp-border-strong);
+      stroke-width: 13;
+      opacity: 0.32;
+    }
+
+    .atlas-route-line {
+      stroke: var(--cp-warning);
+      stroke-width: 4;
+      stroke-dasharray: 4 15;
+      animation: atlas-route-flow 1.25s linear infinite;
+    }
+
+    .atlas-route-branch {
+      stroke: var(--cp-text-muted);
+      stroke-width: 2;
+      stroke-dasharray: 3 12;
+      animation: atlas-route-flow 1.8s linear reverse infinite;
+    }
+
+    .atlas-map-label {
+      position: absolute;
+      top: 18px;
+      left: 18px;
+      z-index: 8;
+      padding: 7px 9px;
+      border: 1px solid currentColor;
+      font-size: 9px;
+      font-weight: 700;
+    }
+
+    .atlas-landmarks {
+      position: absolute;
+      inset: 0;
+    }
+
+    .atlas-landmark {
+      position: absolute;
+      left: var(--x);
+      top: var(--y);
+      z-index: 6;
+      display: grid;
+      grid-template-columns: 40px minmax(0, 1fr);
+      min-width: 164px;
+      gap: 8px;
+      align-items: center;
+      padding: 7px;
+      border: 2px solid currentColor;
+      border-radius: 0.625rem;
+      background: var(--cp-text);
+      color: var(--cp-surface);
+      cursor: pointer;
+      text-align: left;
+      transform: translate(-50%, -50%);
+      transition: color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+      animation: atlas-landmark-enter 500ms both;
+      animation-delay: var(--delay);
+    }
+
+    html[data-theme="dark"] .atlas-landmark {
+      background: var(--cp-surface);
+      color: var(--cp-text);
+    }
+
+    .atlas-landmark:hover,
+    .atlas-landmark[aria-pressed="true"] {
+      box-shadow: 5px 5px 0 currentColor;
+      color: var(--cp-warning);
+      transform: translate(-50%, calc(-50% - 4px));
+    }
+
+    .atlas-landmark::before {
+      position: absolute;
+      inset: -10px;
+      border: 1px solid currentColor;
+      border-radius: 16px;
+      content: "";
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .atlas-landmark[aria-pressed="true"]::before {
+      animation: atlas-landmark-ripple 1.7s ease-out infinite;
+    }
+
+    .atlas-landmark.empty {
+      opacity: 0.72;
+    }
+
+    .atlas-landmark-code {
+      display: grid;
+      width: 40px;
+      height: 40px;
+      place-items: center;
+      border: 1px solid currentColor;
+      animation: atlas-beacon 3.4s ease-in-out 800ms infinite;
+    }
+
+    .atlas-landmark-code .pixel-icon {
+      width: 19px;
+      height: 19px;
+    }
+
+    .atlas-landmark-copy strong,
+    .atlas-landmark-copy small {
+      display: block;
+    }
+
+    .atlas-landmark-copy strong {
+      margin-bottom: 3px;
+      font-size: 12px;
+      line-height: 1.15;
+    }
+
+    .atlas-landmark-copy small {
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 8px;
+      text-transform: uppercase;
+    }
+
+    .atlas-route-beacon {
+      fill: var(--cp-warning);
+      stroke: var(--cp-text);
+      stroke-width: 2;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .atlas-map-symbol path {
+      stroke-dasharray: 240;
+      stroke-dashoffset: 240;
+      animation: atlas-symbol-draw 1.8s ease forwards;
+    }
+
+    .atlas-compass {
+      position: absolute;
+      right: 20px;
+      bottom: 20px;
+      z-index: 8;
+      display: grid;
+      width: 72px;
+      height: 72px;
+      place-items: center;
+      border: 1px solid currentColor;
+      border-radius: 50%;
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .atlas-compass::before,
+    .atlas-compass::after {
+      position: absolute;
+      background: currentColor;
+      content: "";
+    }
+
+    .atlas-compass::before {
+      width: 1px;
+      height: 54px;
+    }
+
+    .atlas-compass::after {
+      width: 54px;
+      height: 1px;
+    }
+
+    .atlas-region-panel {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 20;
+      display: flex;
+      width: min(580px, 42%);
+      min-width: 420px;
+      flex-direction: column;
+      overflow-y: auto;
+      border-left: 2px solid var(--cp-text);
+      background: var(--cp-surface);
+      color: var(--cp-text);
+      box-shadow: -12px 0 0 var(--cp-warning);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateX(105%);
+      transition: transform 600ms cubic-bezier(0.2, 0.82, 0.2, 1), opacity 120ms linear;
+    }
+
+    html[data-theme="dark"] .atlas-region-panel {
+      border-color: var(--cp-surface);
+      background: var(--cp-text);
+      color: var(--cp-surface);
+    }
+
+    .atlas-stage.is-exploring .atlas-region-panel {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(0);
+    }
+
+    .atlas-panel-close {
+      position: sticky;
+      top: 0;
+      z-index: 4;
+      align-self: flex-end;
+      min-width: 92px;
+      padding: 10px 12px;
+      border: 0;
+      border-bottom: 1px solid currentColor;
+      border-left: 1px solid currentColor;
+      border-radius: 0 0 0 0.625rem;
+      background: var(--cp-surface);
+      color: var(--cp-text);
+      cursor: pointer;
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    html[data-theme="dark"] .atlas-panel-close {
+      background: var(--cp-text);
+      color: var(--cp-surface);
+    }
+
+    .atlas-region-head {
+      padding: 8px 28px 24px;
+      border-bottom: 1px solid currentColor;
+    }
+
+    .atlas-region-kicker {
+      margin-bottom: 8px;
+      color: var(--cp-text-muted);
+      font-size: 9px;
+      font-weight: 700;
+    }
+
+    html[data-theme="dark"] .atlas-region-kicker {
+      color: var(--cp-bg);
+    }
+
+    .atlas-region-head h2 {
+      margin-bottom: 10px;
+      font-size: clamp(34px, 3.2vw, 54px);
+      letter-spacing: -0.055em;
+      line-height: 0.92;
+    }
+
+    .atlas-region-head p {
+      margin-bottom: 0;
+      color: var(--cp-text-soft);
+      line-height: 1.55;
+    }
+
+    html[data-theme="dark"] .atlas-region-head p {
+      color: var(--cp-bg);
+    }
+
+    .atlas-city-map {
+      padding: 20px 28px 24px;
+      border-bottom: 1px solid currentColor;
+    }
+
+    .atlas-city-map-label {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+      color: var(--cp-text-muted);
+      font-size: 8px;
+    }
+
+    html[data-theme="dark"] .atlas-city-map-label {
+      color: var(--cp-bg);
+    }
+
+    .atlas-city-network {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .atlas-city-network::before {
+      position: absolute;
+      top: 50%;
+      right: 8%;
+      left: 8%;
+      height: 1px;
+      background: currentColor;
+      content: "";
+      opacity: 0.28;
+      pointer-events: none;
+    }
+
+    .atlas-city-node {
+      position: relative;
+      z-index: 1;
+      min-height: 78px;
+      padding: 10px;
+      border: 1px solid currentColor;
+      border-radius: 0.625rem;
+      background: var(--cp-surface);
+      color: var(--cp-text);
+      cursor: pointer;
+      text-align: left;
+      animation: atlas-city-enter 350ms both;
+      animation-delay: var(--delay);
+    }
+
+    html[data-theme="dark"] .atlas-city-node {
+      background: var(--cp-text);
+      color: var(--cp-surface);
+    }
+
+    .atlas-city-node[aria-pressed="true"] {
+      box-shadow: inset 6px 0 0 var(--cp-warning);
+    }
+
+    .atlas-city-node strong {
+      display: block;
+    }
+
+    .atlas-city-node-icon {
+      display: grid;
+      width: 28px;
+      height: 28px;
+      margin-bottom: 8px;
+      place-items: center;
+      border: 1px solid currentColor;
+      border-radius: 0.625rem;
+      color: var(--cp-accent);
+    }
+
+    .atlas-city-node-icon .pixel-icon {
+      width: 14px;
+      height: 14px;
+    }
+
+    .atlas-city-node-label {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--cp-text-muted);
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 8px;
+      text-transform: uppercase;
+    }
+
+    .atlas-city-node strong {
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
+    .atlas-city-detail {
+      display: grid;
+      gap: 12px;
+      align-content: start;
+      padding: 24px 28px 32px;
+    }
+
+    .atlas-city-detail.is-entering {
+      animation: atlas-detail-enter 320ms ease both;
+    }
+
+    .atlas-city-kicker {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--cp-text-muted);
+      font-size: 8px;
+    }
+
+    .atlas-city-kicker .pixel-icon {
+      width: 14px;
+      height: 14px;
+    }
+
+    html[data-theme="dark"] .atlas-city-kicker {
+      color: var(--cp-bg);
+    }
+
+    .atlas-city-detail h3 {
+      margin-bottom: 0;
+      font-size: 24px;
+      letter-spacing: -0.035em;
+      line-height: 1.05;
+    }
+
+    .atlas-city-detail p {
+      margin-bottom: 0;
+      color: var(--cp-text-soft);
+      line-height: 1.55;
+    }
+
+    html[data-theme="dark"] .atlas-city-detail p {
+      color: var(--cp-bg);
+    }
+
+    .atlas-city-detail .atlas-city-insight {
+      padding: 12px 0 12px 14px;
+      border-left: 5px solid var(--cp-warning);
+      color: inherit;
+    }
+
+    .atlas-city-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      font-size: 8px;
+    }
+
+    .atlas-city-meta span {
+      padding: 4px 7px;
+      border: 1px solid currentColor;
+      border-radius: 0.625rem;
+    }
+
+    .atlas-panel-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .atlas-panel-action {
+      display: inline-flex;
+      min-height: 36px;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 10px;
+      border: 1px solid currentColor;
+      border-radius: 0.625rem;
+      background: var(--cp-surface);
+      color: var(--cp-text);
+      cursor: pointer;
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 9px;
+      font-weight: 700;
+      text-decoration: none;
+      text-transform: uppercase;
+    }
+
+    html[data-theme="dark"] .atlas-panel-action {
+      background: var(--cp-text);
+      color: var(--cp-surface);
+    }
+
+    .atlas-panel-action.primary {
+      border-color: var(--cp-warning);
+      color: var(--cp-warning);
+    }
+
+    .atlas-world-footer {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+      align-items: center;
+      padding: 14px 0 0;
+    }
+
+    .atlas-week-headline {
+      max-width: 760px;
+      color: var(--cp-text-soft);
+      font-size: 12px;
+      text-align: left;
+    }
+
+    @keyframes atlas-route-flow {
+      to {
+        stroke-dashoffset: -38;
+      }
+    }
+
+    @keyframes atlas-landmark-enter {
+      from {
+        opacity: 0;
+        transform: translate(-50%, calc(-50% + 16px)) scale(0.94);
+      }
+      to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+    }
+
+    @keyframes atlas-beacon {
+      50% {
+        transform: translateY(-3px);
+      }
+    }
+
+    @keyframes atlas-landmark-ripple {
+      from {
+        opacity: 0.5;
+        transform: scale(0.92);
+      }
+      to {
+        opacity: 0;
+        transform: scale(1.12);
+      }
+    }
+
+    @keyframes atlas-symbol-draw {
+      to {
+        stroke-dashoffset: 0;
+      }
+    }
+
+    @keyframes atlas-contour {
+      50% {
+        opacity: 0.24;
+        transform: scale(1.08);
+      }
+    }
+
+    @keyframes atlas-city-enter {
+      from {
+        opacity: 0;
+        transform: translateY(9px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes atlas-detail-enter {
+      from {
+        opacity: 0;
+        transform: translateX(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    /* Standalone AI Evolution Atlas */
+    .history-atlas {
+      min-height: calc(100vh - 64px);
+      padding: 28px 0 48px;
+    }
+
+    .history-masthead {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
+      gap: 32px;
+      align-items: end;
+      padding-bottom: 20px;
+      border-bottom: 2px solid var(--cp-text);
+    }
+
+    .history-kicker,
+    .history-track-filter,
+    .history-lane-label,
+    .history-year-tick,
+    .history-era-period,
+    .history-detail-period,
+    .history-story-index {
+      font-family: Consolas, "Courier New", Courier, monospace;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .history-kicker {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      color: var(--cp-warning);
+      font-size: 10px;
+      font-weight: 900;
+    }
+
+    .history-kicker::before {
+      width: 24px;
+      height: 2px;
+      background: var(--cp-warning);
+      content: "";
+    }
+
+    .history-title {
+      max-width: 900px;
+      margin: 0;
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: clamp(52px, 7vw, 94px);
+      font-weight: 900;
+      letter-spacing: -0.08em;
+      line-height: 0.84;
+      text-transform: uppercase;
+    }
+
+    .history-title span {
+      display: block;
+      color: var(--cp-warning);
+    }
+
+    .history-intro {
+      max-width: 620px;
+      margin: 16px 0 0;
+      color: var(--cp-text-muted);
+      font-size: 14px;
+      line-height: 1.8;
+    }
+
+    .history-masthead-actions {
+      display: grid;
+      gap: 10px;
+      justify-items: end;
+    }
+
+    .history-masthead-actions p {
+      max-width: 380px;
+      margin: 0;
+      color: var(--cp-text-muted);
+      font-size: 12px;
+      line-height: 1.7;
+      text-align: right;
+    }
+
+    .history-action-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .history-action {
+      display: inline-flex;
+      min-height: 36px;
+      align-items: center;
+      gap: 8px;
+      justify-content: center;
+      padding: 7px 12px;
+      border: 1px solid var(--cp-text);
+      background: var(--cp-bg-elevated);
+      color: var(--cp-text);
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      text-decoration: none;
+      text-transform: uppercase;
+    }
+
+    .history-action:hover,
+    .history-action:focus-visible {
+      background: var(--cp-warning);
+      color: var(--cp-bg-elevated);
+      transform: translateY(-2px);
+    }
+
+    .history-identity {
+      margin: 16px 0;
+      padding: 0;
+      overflow: hidden;
+      border: 1px solid var(--cp-border-strong);
+      border-radius: 16px;
+      background: var(--cp-bg-elevated);
+      box-shadow: 0 0 2px var(--cp-border), 0 1px 2px var(--cp-border-strong);
+    }
+
+    .history-identity-head {
+      display: grid;
+      grid-template-columns: 52px minmax(0, 1fr) minmax(260px, 0.7fr);
+      gap: 14px;
+      align-items: center;
+      padding: 16px;
+      border-bottom: 1px solid var(--cp-border);
+    }
+
+    .history-identity-icon {
+      display: grid;
+      width: 52px;
+      height: 52px;
+      place-items: center;
+      border-radius: 0.625rem;
+      background: var(--cp-accent);
+      color: var(--cp-accent-fg);
+    }
+
+    .history-identity-icon .pixel-icon {
+      width: 24px;
+      height: 24px;
+    }
+
+    .history-identity-kicker {
+      color: var(--cp-accent);
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 8px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .history-identity-head h2 {
+      margin: 4px 0 0;
+      font-size: clamp(20px, 2.3vw, 30px);
+      letter-spacing: -0.035em;
+    }
+
+    .history-identity-head p {
+      margin: 0;
+      color: var(--cp-text-muted);
+      font-size: 11px;
+      line-height: 1.65;
+    }
+
+    .history-people {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+
+    .history-person {
+      position: relative;
+      min-width: 0;
+      border-right: 1px solid var(--cp-border);
+      background: var(--cp-surface);
+      animation: history-identity-enter 420ms ease both;
+      animation-delay: var(--identity-delay);
+    }
+
+    .history-person:last-child {
+      border-right: 0;
+    }
+
+    .history-person-main {
+      display: block;
+      color: var(--cp-text);
+      text-decoration: none;
+    }
+
+    .history-person-main:hover,
+    .history-person-main:focus-visible {
+      background: var(--cp-accent-soft);
+    }
+
+    .history-person-media {
+      position: relative;
+      display: grid;
+      aspect-ratio: 4 / 3;
+      place-items: center;
+      overflow: hidden;
+      border-bottom: 1px solid var(--cp-border);
+      background: var(--cp-surface-soft);
+      color: var(--cp-text-muted);
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 22px;
+      font-weight: 900;
+    }
+
+    .history-person-media img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center 24%;
+      filter: grayscale(1);
+      transition: filter 220ms ease, transform 220ms ease;
+    }
+
+    .history-person-main:hover .history-person-media img,
+    .history-person-main:focus-visible .history-person-media img {
+      filter: grayscale(0);
+      transform: scale(1.035);
+    }
+
+    .history-person-copy {
+      min-height: 112px;
+      padding: 12px;
+    }
+
+    .history-person-period {
+      color: var(--cp-accent);
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 8px;
+      font-weight: 900;
+    }
+
+    .history-person-copy h3 {
+      margin: 5px 0 3px;
+      font-size: 15px;
+      line-height: 1.2;
+    }
+
+    .history-person-role {
+      display: block;
+      min-height: 30px;
+      color: var(--cp-text-muted);
+      font-size: 10px;
+      line-height: 1.45;
+    }
+
+    .history-person-impact {
+      margin: 8px 0 0;
+      color: var(--cp-text-soft);
+      font-size: 9px;
+      line-height: 1.55;
+    }
+
+    .history-photo-credit {
+      display: block;
+      padding: 6px 10px;
+      border-top: 1px solid var(--cp-border);
+      color: var(--cp-text-muted);
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 7px;
+      line-height: 1.4;
+      text-decoration: none;
+    }
+
+    .history-photo-credit:hover,
+    .history-photo-credit:focus-visible {
+      color: var(--cp-link);
+      text-decoration: underline;
+    }
+
+    .history-organizations-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      border-top: 2px solid var(--cp-text);
+      border-bottom: 1px solid var(--cp-border);
+      font-size: 11px;
+    }
+
+    .history-organizations-head .pixel-icon {
+      width: 16px;
+      height: 16px;
+      color: var(--cp-accent);
+    }
+
+    .history-organizations {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .history-organization {
+      display: grid;
+      min-height: 92px;
+      grid-template-columns: 52px minmax(0, 1fr);
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      border-right: 1px solid var(--cp-border);
+      border-bottom: 1px solid var(--cp-border);
+      background: var(--cp-surface);
+      color: var(--cp-text);
+      text-decoration: none;
+      animation: history-identity-enter 420ms ease both;
+      animation-delay: var(--identity-delay);
+    }
+
+    .history-organization:nth-child(4n) {
+      border-right: 0;
+    }
+
+    .history-organization:nth-last-child(-n + 4) {
+      border-bottom: 0;
+    }
+
+    .history-organization:hover,
+    .history-organization:focus-visible {
+      background: var(--cp-accent-soft);
+    }
+
+    .history-organization-logo {
+      position: relative;
+      display: grid;
+      width: 52px;
+      height: 52px;
+      place-items: center;
+      border: 1px solid var(--cp-border);
+      border-radius: 0.625rem;
+      background: var(--cp-surface-soft);
+      color: var(--cp-text);
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .history-organization-logo img {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+    }
+
+    .history-organization-logo.is-missing img,
+    .history-person-media.is-missing img {
+      display: none;
+    }
+
+    html[data-theme="dark"] .history-organization-logo img {
+      filter: invert(1);
+    }
+
+    .history-organization-copy {
+      min-width: 0;
+    }
+
+    .history-organization-copy strong,
+    .history-organization-copy span,
+    .history-organization-copy small {
+      display: block;
+    }
+
+    .history-organization-copy strong {
+      font-size: 12px;
+    }
+
+    .history-organization-copy span {
+      margin-top: 3px;
+      color: var(--cp-accent);
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 8px;
+    }
+
+    .history-organization-copy small {
+      margin-top: 5px;
+      color: var(--cp-text-muted);
+      font-size: 9px;
+      line-height: 1.4;
+    }
+
+    .history-stage {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--cp-border-strong);
+      background: var(--cp-surface);
+      box-shadow: 0 0 2px var(--cp-border), 0 1px 2px var(--cp-border-strong);
+    }
+
+    .history-board-header {
+      position: relative;
+      z-index: 8;
+      display: flex;
+      min-height: 58px;
+      align-items: center;
+      gap: 12px;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--cp-border);
+      background: var(--cp-bg-elevated);
+    }
+
+    .history-board-header strong {
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .history-board-heading {
+      display: grid;
+      gap: 3px;
+    }
+
+    .history-board-heading span {
+      color: var(--cp-text-muted);
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 9px;
+    }
+
+    .history-track-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: flex-end;
+    }
+
+    .history-track-filter {
+      min-height: 30px;
+      padding: 5px 8px;
+      border: 1px solid var(--cp-border-strong);
+      background: var(--cp-surface);
+      color: var(--cp-text-muted);
+      font-size: 8px;
+      font-weight: 900;
+    }
+
+    .history-track-filter:hover,
+    .history-track-filter:focus-visible,
+    .history-track-filter[aria-pressed="true"] {
+      border-color: var(--cp-text);
+      background: var(--cp-text);
+      color: var(--cp-surface);
+    }
+
+    .history-board-scroll {
+      overflow-x: auto;
+      overflow-y: hidden;
+      overscroll-behavior-inline: contain;
+      scrollbar-color: var(--cp-border-strong) var(--cp-surface-soft);
+    }
+
+    .history-board {
+      position: relative;
+      width: max(100%, 1240px);
+      height: 1080px;
+      overflow: hidden;
+      background: var(--cp-surface);
+    }
+
+    .history-board::after {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      background:
+        radial-gradient(circle at 22% 12%, var(--cp-highlight), transparent 20%),
+        radial-gradient(circle at 82% 72%, var(--cp-accent-soft), transparent 22%);
+      content: "";
+      pointer-events: none;
+    }
+
+    .history-scale-zones,
+    .history-year-axis,
+    .history-lanes {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+    }
+
+    .history-scale-zones {
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .history-scale-zone {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: var(--x-start);
+      width: var(--x-width);
+      border-right: 1px solid var(--cp-border);
+      background: var(--cp-sheen);
+    }
+
+    .history-scale-zone:nth-child(even) {
+      background: var(--cp-surface-soft);
+    }
+
+    .history-scale-zone span {
+      position: absolute;
+      top: 70px;
+      left: 6px;
+      color: var(--cp-text-soft);
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 7px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .history-year-tick {
+      position: absolute;
+      top: calc(16px + var(--tick-row) * 18px);
+      left: var(--x);
+      color: var(--cp-text-muted);
+      font-size: 8px;
+      transform: translateX(-50%);
+    }
+
+    .history-year-tick::after {
+      position: absolute;
+      top: 24px;
+      left: 50%;
+      width: 1px;
+      height: 1020px;
+      background: var(--cp-border);
+      content: "";
+    }
+
+    .history-public-layer {
+      position: absolute;
+      top: 96px;
+      right: 0;
+      left: 0;
+      z-index: 4;
+      height: 170px;
+      padding: 0;
+      border-top: 2px solid var(--cp-text);
+      border-bottom: 1px solid var(--cp-border-strong);
+      background: var(--cp-panel);
+    }
+
+    .history-public-label {
+      position: absolute;
+      top: 48px;
+      left: 16px;
+      display: grid;
+      width: 128px;
+      gap: 5px;
+      padding: 8px;
+      border: 1px solid var(--cp-text);
+      background: var(--cp-text);
+      color: var(--cp-surface);
+    }
+
+    .history-public-label strong,
+    .history-public-label span {
+      font-family: Consolas, "Courier New", Courier, monospace;
+      line-height: 1.35;
+    }
+
+    .history-public-label strong {
+      font-size: 9px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .history-public-label span {
+      color: var(--cp-border);
+      font-size: 8px;
+    }
+
+    .history-context-chapters {
+      position: absolute;
+      inset: 0;
+    }
+
+    .history-context-chapters::before {
+      position: absolute;
+      top: 84px;
+      right: 28px;
+      left: 160px;
+      height: 2px;
+      background: var(--cp-warning);
+      content: "";
+      opacity: 0.72;
+    }
+
+    .history-context-chapter {
+      position: absolute;
+      top: 20px;
+      left: var(--x-start);
+      z-index: 2;
+      display: grid;
+      width: calc(var(--x-width) - 4px);
+      height: 126px;
+      align-content: start;
+      gap: 5px;
+      padding: 8px;
+      overflow: hidden;
+      border: 1px solid var(--cp-border-strong);
+      background: var(--cp-panel-strong);
+      color: var(--cp-text);
+      opacity: 0;
+      text-align: left;
+      animation: history-chapter-enter 520ms ease forwards;
+      animation-delay: var(--chapter-delay);
+    }
+
+    .history-context-chapter::after {
+      position: absolute;
+      bottom: -7px;
+      left: 50%;
+      width: 12px;
+      height: 12px;
+      border: 2px solid var(--cp-warning);
+      border-radius: 50%;
+      background: var(--cp-surface);
+      content: "";
+      transform: translateX(-50%);
+    }
+
+    .history-context-chapter:hover,
+    .history-context-chapter:focus-visible,
+    .history-context-chapter[aria-pressed="true"] {
+      border-color: var(--cp-warning);
+      box-shadow: inset 0 4px 0 var(--cp-warning);
+      color: var(--cp-accent);
+      transform: translateY(-3px);
+    }
+
+    .history-context-period {
+      color: var(--cp-warning);
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 8px;
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .history-context-heading {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .history-context-icon {
+      display: grid;
+      width: 24px;
+      height: 24px;
+      flex: 0 0 auto;
+      place-items: center;
+      border-radius: 0.625rem;
+      background: var(--cp-accent-soft);
+      color: var(--cp-accent);
+    }
+
+    .history-context-icon .pixel-icon {
+      width: 13px;
+      height: 13px;
+    }
+
+    .history-context-chapter strong {
+      display: -webkit-box;
+      overflow: hidden;
+      color: var(--cp-text);
+      font-size: 11px;
+      line-height: 1.35;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+    }
+
+    .history-context-chapter small {
+      display: -webkit-box;
+      overflow: hidden;
+      color: var(--cp-text-muted);
+      font-size: 8px;
+      line-height: 1.35;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+
+    .history-lane {
+      position: absolute;
+      top: calc(292px + var(--row) * 128px);
+      right: 0;
+      left: 0;
+      height: 108px;
+      transition: opacity 240ms ease, filter 240ms ease;
+    }
+
+    .history-lane::before {
+      position: absolute;
+      top: 42px;
+      right: 28px;
+      left: 160px;
+      height: 2px;
+      background: repeating-linear-gradient(
+        90deg,
+        var(--cp-border-strong) 0 10px,
+        transparent 10px 16px
+      );
+      background-position: 0 0;
+      content: "";
+      animation: history-route-flow 8s linear infinite;
+    }
+
+    .history-lane.is-dimmed {
+      filter: grayscale(1);
+      opacity: 0.16;
+    }
+
+    .history-lane-label {
+      position: absolute;
+      top: 22px;
+      left: 16px;
+      display: grid;
+      grid-template-columns: 24px minmax(0, 1fr);
+      width: 128px;
+      min-height: 44px;
+      gap: 7px;
+      align-content: center;
+      align-items: center;
+      padding: 6px 8px;
+      border: 1px solid var(--cp-border-strong);
+      background: var(--cp-bg-elevated);
+      color: var(--cp-text);
+      font-size: 9px;
+      font-weight: 900;
+      text-align: left;
+    }
+
+    .history-lane-label span {
+      color: var(--cp-text);
+      font-size: 9px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .history-lane-label .pixel-icon {
+      width: 16px;
+      height: 16px;
+      color: var(--cp-accent);
+    }
+
+    .history-era-node {
+      position: absolute;
+      top: 12px;
+      left: var(--x);
+      z-index: 4;
+      display: grid;
+      width: 146px;
+      justify-items: center;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: var(--cp-text);
+      opacity: 0;
+      text-align: center;
+      transform: translateX(-50%);
+      animation: history-station-enter 560ms ease forwards;
+      animation-delay: var(--station-delay);
+    }
+
+    .history-era-node:hover,
+    .history-era-node:focus-visible {
+      color: var(--cp-accent);
+      transform: translateX(-50%) translateY(-3px);
+    }
+
+    .history-era-node[aria-pressed="true"] {
+      color: var(--cp-warning);
+    }
+
+    .history-station-dot {
+      position: relative;
+      display: grid;
+      width: 26px;
+      height: 26px;
+      place-items: center;
+      border: 2px solid currentColor;
+      border-radius: 50%;
+      background: var(--cp-surface);
+      box-shadow: 0 0 0 4px var(--cp-surface);
+    }
+
+    .history-station-dot::before {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      content: "";
+    }
+
+    .history-era-node[aria-pressed="true"] .history-station-dot::after {
+      position: absolute;
+      inset: -9px;
+      border: 1px solid currentColor;
+      border-radius: 50%;
+      content: "";
+      animation: history-station-pulse 1.8s ease-out infinite;
+    }
+
+    .history-era-copy {
+      display: grid;
+      gap: 3px;
+      width: 146px;
+      margin-top: 8px;
+      padding: 5px 6px;
+      background: var(--cp-panel-strong);
+    }
+
+    .history-era-period {
+      color: currentColor;
+      font-size: 8px;
+      font-weight: 900;
+    }
+
+    .history-era-copy small {
+      display: -webkit-box;
+      overflow: hidden;
+      color: var(--cp-text);
+      font-size: 9px;
+      font-weight: 700;
+      line-height: 1.35;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+
+    .history-scan-line {
+      position: absolute;
+      top: 54px;
+      bottom: 18px;
+      left: 18%;
+      z-index: 3;
+      width: 1px;
+      background: var(--cp-warning);
+      box-shadow: 0 0 12px var(--cp-warning);
+      opacity: 0.62;
+      pointer-events: none;
+      animation: history-scan 12s ease-in-out infinite alternate;
+    }
+
+    .history-scan-line::before {
+      position: absolute;
+      top: -18px;
+      left: -26px;
+      width: 54px;
+      color: var(--cp-warning);
+      content: "TIME";
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 8px;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      text-align: center;
+    }
+
+    .history-detail {
+      position: absolute;
+      top: 58px;
+      right: 0;
+      bottom: 0;
+      z-index: 12;
+      width: min(430px, 40%);
+      overflow: auto;
+      padding: 20px;
+      border-left: 2px solid var(--cp-text);
+      background: var(--cp-bg-elevated);
+      box-shadow: -12px 0 0 var(--cp-warning);
+      color: var(--cp-text);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateX(105%);
+      transition: opacity 260ms ease, transform 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    .history-detail.is-open {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(0);
+    }
+
+    .history-detail-close {
+      display: grid;
+      width: 36px;
+      height: 36px;
+      margin-left: auto;
+      place-items: center;
+      border: 1px solid var(--cp-text);
+      background: var(--cp-surface);
+      color: var(--cp-text);
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 17px;
+      font-weight: 900;
+    }
+
+    .history-detail-close:hover,
+    .history-detail-close:focus-visible {
+      background: var(--cp-text);
+      color: var(--cp-surface);
+    }
+
+    .history-detail-period {
+      display: inline-flex;
+      margin: 24px 0 10px;
+      padding: 5px 7px;
+      background: var(--cp-warning);
+      color: var(--cp-bg-elevated);
+      font-size: 9px;
+      font-weight: 900;
+    }
+
+    .history-detail h2 {
+      margin: 0 0 12px;
+      font-size: clamp(28px, 3.2vw, 42px);
+      letter-spacing: -0.04em;
+      line-height: 1;
+    }
+
+    .history-detail-summary {
+      margin: 0;
+      color: var(--cp-text-muted);
+      font-size: 13px;
+      line-height: 1.8;
+    }
+
+    .history-detail-block {
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid var(--cp-border);
+    }
+
+    .history-detail-block h3 {
+      margin: 0 0 10px;
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .history-detail-block ul {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .history-detail-block li {
+      position: relative;
+      padding-left: 16px;
+      color: var(--cp-text-muted);
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .history-detail-block li::before {
+      position: absolute;
+      top: 0.72em;
+      left: 0;
+      width: 7px;
+      height: 2px;
+      background: var(--cp-warning);
+      content: "";
+    }
+
+    .history-implication {
+      padding: 12px;
+      border-left: 3px solid var(--cp-warning);
+      background: var(--cp-surface);
+      color: var(--cp-text);
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.7;
+    }
+
+    .history-source-action {
+      display: flex;
+      min-height: 38px;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 20px;
+      padding: 8px 10px;
+      border: 1px solid var(--cp-text);
+      background: var(--cp-text);
+      color: var(--cp-surface);
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      text-decoration: none;
+      text-transform: uppercase;
+    }
+
+    .history-source-action:hover,
+    .history-source-action:focus-visible {
+      background: var(--cp-warning);
+      color: var(--cp-bg-elevated);
+      transform: translateY(-2px);
+    }
+
+    .history-storyline {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      margin-top: 16px;
+      border: 1px solid var(--cp-border-strong);
+      background: var(--cp-bg-elevated);
+    }
+
+    .history-story {
+      min-height: 150px;
+      padding: 16px;
+      border-right: 1px solid var(--cp-border);
+      border-bottom: 1px solid var(--cp-border);
+    }
+
+    .history-story:nth-child(3n) {
+      border-right: 0;
+    }
+
+    .history-story:nth-last-child(-n + 3) {
+      border-bottom: 0;
+    }
+
+    .history-story-index {
+      display: block;
+      margin-bottom: 18px;
+      color: var(--cp-warning);
+      font-size: 9px;
+      font-weight: 900;
+    }
+
+    .history-story h3 {
+      margin: 0 0 8px;
+      font-size: 16px;
+    }
+
+    .history-story p {
+      margin: 0;
+      color: var(--cp-text-muted);
+      font-size: 11px;
+      line-height: 1.65;
+    }
+
+    @keyframes history-route-flow {
+      to {
+        background-position: 96px 0;
+      }
+    }
+
+    @keyframes history-identity-enter {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes history-station-enter {
+      from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(12px);
+      }
+
+      @keyframes history-chapter-enter {
+        from {
+          opacity: 0;
+          transform: translateY(12px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    }
+
+    @keyframes history-station-pulse {
+      from {
+        opacity: 0.52;
+        transform: scale(0.82);
+      }
+      to {
+        opacity: 0;
+        transform: scale(1.25);
+      }
+    }
+
+    @keyframes history-scan {
+      from {
+        left: 18%;
+      }
+      to {
+        left: 94%;
+      }
+    }
+
+    @media (max-width: 1040px) {
+      .atlas-masthead,
+      .history-masthead {
+        grid-template-columns: 1fr;
+      }
+
+      .atlas-stage {
+        min-height: 760px;
+      }
+
+      .atlas-region-panel {
+        width: min(620px, 58%);
+      }
+
+      .history-masthead-actions {
+        justify-items: start;
+      }
+
+      .history-masthead-actions p {
+        text-align: left;
+      }
+
+      .history-action-row {
+        justify-content: flex-start;
+      }
+
+      .history-identity-head {
+        grid-template-columns: 52px minmax(0, 1fr);
+      }
+
+      .history-identity-head p {
+        grid-column: 2;
+      }
+
+      .history-people {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .history-person:nth-child(3n) {
+        border-right: 0;
+      }
+
+      .history-person:nth-child(-n + 3) {
+        border-bottom: 1px solid var(--cp-border);
+      }
+
+      .history-storyline {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .history-story,
+      .history-story:nth-child(3n) {
+        border-right: 1px solid var(--cp-border);
+        border-bottom: 1px solid var(--cp-border);
+      }
+
+      .history-story:nth-child(2n) {
+        border-right: 0;
+      }
+
+      .history-story:nth-last-child(-n + 2) {
+        border-bottom: 0;
+      }
+    }
+
+    @media (max-width: 720px) {
+      body.atlas-panel-open,
+      body.history-panel-open {
+        overflow: hidden;
+      }
+
+      .atlas-world,
+      .history-atlas {
+        padding-top: 20px;
+      }
+
+      .atlas-title {
+        font-size: clamp(48px, 17vw, 72px);
+      }
+
+      .atlas-guide span {
+        min-height: 72px;
+        padding: 9px;
+      }
+
+      .atlas-stage {
+        min-height: 780px;
+        overflow: visible;
+      }
+
+      .atlas-stage.is-exploring .atlas-map-viewport {
+        filter: saturate(0.72);
+        transform: translate(var(--pan-x), var(--pan-y)) scale(1.08);
+      }
+
+      .atlas-landmark {
+        grid-template-columns: 30px minmax(0, 1fr);
+        min-width: 126px;
+        padding: 6px;
+      }
+
+      .atlas-landmark-code {
+        width: 30px;
+        height: 30px;
+      }
+
+      .atlas-landmark-copy strong {
+        font-size: 10px;
+      }
+
+      .atlas-landmark-copy small {
+        display: none;
+      }
+
+      .atlas-map-label {
+        top: 12px;
+        left: 12px;
+      }
+
+      .atlas-compass {
+        right: 12px;
+        bottom: 12px;
+        width: 58px;
+        height: 58px;
+      }
+
+      .atlas-region-panel {
+        position: fixed;
+        top: 64px;
+        right: 0;
+        bottom: 0;
+        z-index: 90;
+        width: 100%;
+        min-width: 0;
+        max-height: none;
+        border-top: 2px solid var(--cp-text);
+        border-left: 0;
+        box-shadow: 0 -10px 0 var(--cp-warning);
+        transform: translateY(105%);
+      }
+
+      html[data-theme="dark"] .atlas-region-panel {
+        border-color: var(--cp-surface);
+      }
+
+      .atlas-stage.is-exploring .atlas-region-panel {
+        transform: translateY(0);
+      }
+
+      .atlas-panel-close {
+        border-right: 0;
+      }
+
+      .atlas-region-head,
+      .atlas-city-map,
+      .atlas-city-detail {
+        padding-right: 20px;
+        padding-left: 20px;
+      }
+
+      .atlas-world-footer {
+        grid-template-columns: 1fr;
+      }
+
+      .atlas-week-headline {
+        max-width: none;
+        text-align: left;
+      }
+
+      .history-title {
+        font-size: clamp(44px, 14vw, 60px);
+      }
+
+      .history-identity-head {
+        grid-template-columns: 52px minmax(0, 1fr);
+      }
+
+      .history-identity-head p {
+        grid-column: 1 / -1;
+      }
+
+      .history-people {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .history-person,
+      .history-person:nth-child(3n) {
+        border-right: 1px solid var(--cp-border);
+        border-bottom: 1px solid var(--cp-border);
+      }
+
+      .history-person:nth-child(2n) {
+        border-right: 0;
+      }
+
+      .history-person:nth-last-child(-n + 2) {
+        border-bottom: 0;
+      }
+
+      .history-organizations {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .history-organization,
+      .history-organization:nth-child(4n) {
+        border-right: 1px solid var(--cp-border);
+        border-bottom: 1px solid var(--cp-border);
+      }
+
+      .history-organization:nth-child(2n) {
+        border-right: 0;
+      }
+
+      .history-organization:nth-last-child(-n + 2) {
+        border-bottom: 0;
+      }
+
+      .history-board-header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .history-track-filters {
+        justify-content: flex-start;
+      }
+
+      .history-detail {
+        position: fixed;
+        top: 64px;
+        right: 0;
+        bottom: 0;
+        z-index: 90;
+        width: 100%;
+        border-top: 2px solid var(--cp-text);
+        border-left: 0;
+        box-shadow: 0 -10px 0 var(--cp-warning);
+        transform: translateY(105%);
+      }
+
+      .history-detail.is-open {
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 460px) {
+      .topbar {
+        gap: 8px;
+      }
+
+      .brand {
+        gap: 6px;
+      }
+
+      .brand-copy b {
+        white-space: nowrap;
+      }
+
+      .brand-copy small {
+        display: none;
+      }
+
+      .top-links {
+        gap: 4px;
+      }
+
+      .top-link,
+      .theme-toggle {
+        min-height: 36px;
+        gap: 4px;
+        padding: 5px 6px;
+        font-size: 9px;
+        letter-spacing: 0;
+        white-space: nowrap;
+      }
+
+      .top-link .pixel-icon,
+      .theme-toggle .pixel-icon {
+        width: 14px;
+        height: 14px;
+      }
+
+      .atlas-guide {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .atlas-guide span {
+        min-height: 82px;
+      }
+
+      .atlas-guide b {
+        font-size: 9px;
+      }
+
+      .atlas-city-network {
+        grid-template-columns: 1fr;
+      }
+
+      .history-storyline {
+        grid-template-columns: 1fr;
+      }
+
+      .history-story,
+      .history-story:nth-child(2n),
+      .history-story:nth-child(3n) {
+        min-height: 0;
+        border-right: 0;
+        border-bottom: 1px solid var(--cp-border);
+      }
+
+      .history-story:last-child {
+        border-bottom: 0;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+
+      .atlas-route-line,
+      .atlas-route-branch,
+      .atlas-route-beacon,
+      .atlas-landmark,
+      .atlas-landmark::before,
+      .atlas-landmark-code,
+      .atlas-map-symbol path,
+      .atlas-map-shell::before,
+      .atlas-map-shell::after,
+      .atlas-city-node,
+      .atlas-city-detail,
+      .history-lane::before,
+      .history-person,
+      .history-organization,
+      .history-context-chapter,
+      .history-era-node,
+      .history-era-node[aria-pressed="true"] .history-station-dot::after,
+      .history-scan-line {
+        animation: none;
+      }
+
+      .atlas-map-viewport,
+      .atlas-region-panel,
+      .history-person-media img,
+      .history-lane,
+      .history-detail {
+        transition: none;
+      }
+
+      .history-person-main:hover .history-person-media img,
+      .history-person-main:focus-visible .history-person-media img {
+        transform: none;
+      }
+
+      .history-context-chapter,
+      .history-era-node {
+        opacity: 1;
+      }
+
+      .atlas-route-beacon,
+      .history-scan-line {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body data-design-system="midnight-atlas-paper" data-view="map">
+  <header class="topbar shell">
+    <a class="brand" href="/ai-roadmap" aria-label="AI Builder Roadmap 首页">
+      <span class="brand-mark"><span class="pixel-robot" aria-hidden="true"></span></span>
+      <span class="brand-copy"><b>AI Builder</b><small>World Atlas</small></span>
+    </a>
+    <nav class="top-links" aria-label="主导航">
+      <a class="top-link optional" href="/"><span data-icon="memory"></span>Memory</a>
+      <a class="top-link optional" href="/space"><span data-icon="map"></span>作战空间</a>
+      <button class="top-link view-toggle" id="historyViewButton" type="button" aria-label="打开 AI 历史版图"><span data-icon="timeline"></span><span id="historyViewLabel">历史版图</span></button>
+      <button class="top-link view-toggle" id="viewToggle" type="button" aria-label="切换地图与档案模式"><span data-icon="map"></span><span id="viewToggleLabel">档案模式</span></button>
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="切换明暗主题"><span data-icon="theme"></span>主题</button>
+    </nav>
+  </header>
+
+  <div class="shell">
+    <main id="app">
+      <section class="atlas-world" id="atlasWorld" aria-labelledby="atlasTitle">
+        <header class="atlas-masthead">
+          <div>
+            <div class="atlas-kicker"><span id="atlasWeek">Weekly world loading</span></div>
+            <h1 class="atlas-title" id="atlasTitle">AI Builder <span>World</span></h1>
+            <p class="atlas-subtitle" id="atlasSubtitle">六个知识区域连接成一张可持续探索的 AI 世界地图。点击地标，直接查看本周证据、长期演进、输出观点与商业机会。</p>
+          </div>
+          <div class="atlas-guide" aria-label="地图使用方式">
+            <span><i data-icon="radar"></i><b>看本周变化</b></span>
+            <span><i data-icon="source"></i><b>打开原始来源</b></span>
+            <span><i data-icon="diamond"></i><b>发现商业机会</b></span>
+          </div>
+        </header>
+
+        <div class="atlas-stage" id="atlasStage" aria-label="AI Builder 世界地图">
+          <div class="atlas-map-shell">
+            <div class="atlas-map-label">AI BUILDER 世界地图</div>
+            <div class="atlas-map-viewport" id="atlasMapViewport">
+              <svg class="atlas-map-art" viewBox="0 0 1000 680" aria-hidden="true">
+                <path class="atlas-terrain atlas-terrain--weekly" d="M44 337C70 233 175 196 265 235C333 264 342 351 292 423C240 498 91 492 49 409C38 388 36 364 44 337Z"/>
+                <path class="atlas-terrain atlas-terrain--secondary atlas-terrain--builders" d="M187 64C253 33 352 70 381 129C410 187 364 243 291 248C219 252 140 205 143 142C145 108 159 77 187 64Z"/>
+                <path class="atlas-terrain atlas-terrain--evolution" d="M367 320C399 248 489 226 566 259C638 291 652 378 597 440C547 497 449 507 387 457C348 425 345 370 367 320Z"/>
+                <path class="atlas-terrain atlas-terrain--secondary atlas-terrain--output" d="M599 70C670 38 771 56 814 116C859 180 816 252 737 263C661 273 583 227 568 164C558 123 569 84 599 70Z"/>
+                <path class="atlas-terrain atlas-terrain--opportunities" d="M747 304C808 262 917 288 953 359C989 431 936 504 851 501C775 498 711 444 713 379C714 347 726 319 747 304Z"/>
+                <path class="atlas-terrain atlas-terrain--secondary atlas-terrain--method" d="M573 477C633 438 735 456 775 518C815 580 765 645 688 651C613 657 542 608 539 548C537 518 548 489 573 477Z"/>
+                <path class="atlas-terrain-detail" d="M69 361C111 299 197 285 261 325M173 91C240 116 292 163 337 214M399 357C447 305 528 310 599 374M612 119C681 148 738 186 787 233M758 357C827 335 889 371 930 430M584 535C638 502 706 530 749 591"/>
+                <g class="atlas-map-symbol atlas-map-symbol--weekly">
+                  <path d="M102 382h83M115 382v-55h16v55M108 327h30M118 313h10v14M143 348h28v34M148 342h18v6M91 398c18-9 35-9 53 0s35 9 53 0"/>
+                </g>
+                <g class="atlas-map-symbol atlas-map-symbol--builders">
+                  <path d="M252 181h78v46h-78zM252 181v-25h18v14h20v-14h18v14h22v11M270 227v-25h15v25M304 190h12v12h-12z"/>
+                </g>
+                <g class="atlas-map-symbol atlas-map-symbol--evolution">
+                  <path d="M410 418l40-76 32 46 23-37 48 67M430 418l36-55 21 31M512 418l17-27 19 27"/>
+                </g>
+                <g class="atlas-map-symbol atlas-map-symbol--output">
+                  <path d="M650 203h91v28h-91zM664 203v-52h63v52M676 167h39M686 151v-18h20v18M642 231h107"/>
+                </g>
+                <g class="atlas-map-symbol atlas-map-symbol--opportunities">
+                  <path d="M826 346l38 38-38 38-38-38zM826 360v48M802 384h48M778 430h96"/>
+                </g>
+                <g class="atlas-map-symbol atlas-map-symbol--method">
+                  <path d="M638 575h92v45h-92zM649 575v-32h70v32M662 543v-17h44v17M675 592h18v28M628 620h112"/>
+                </g>
+                <path class="atlas-route-shadow" d="M150 340C204 268 257 184 330 165C406 145 405 342 487 372C564 399 614 196 694 160C766 128 787 328 848 375C894 411 787 506 681 560"/>
+                <path class="atlas-route-line" id="atlasMainRoute" d="M150 340C204 268 257 184 330 165C406 145 405 342 487 372C564 399 614 196 694 160C766 128 787 328 848 375C894 411 787 506 681 560"/>
+                <circle class="atlas-route-beacon" r="5">
+                  <animateMotion dur="10s" repeatCount="indefinite"><mpath href="#atlasMainRoute"/></animateMotion>
+                </circle>
+                <circle class="atlas-route-beacon" r="4">
+                  <animateMotion begin="-5s" dur="10s" repeatCount="indefinite"><mpath href="#atlasMainRoute"/></animateMotion>
+                </circle>
+                <path class="atlas-route-branch" d="M150 340C117 393 88 429 55 458M487 372C458 453 439 524 407 592M694 160C788 97 869 90 944 121M848 375C924 347 967 318 988 279"/>
+              </svg>
+              <div class="atlas-landmarks" id="atlasLandmarks"></div>
+            </div>
+            <div class="atlas-compass" aria-hidden="true">N</div>
+          </div>
+
+          <aside class="atlas-region-panel" id="atlasRegionPanel" aria-hidden="true" aria-labelledby="atlasRegionTitle" inert>
+            <button class="atlas-panel-close" id="atlasPanelClose" type="button">关闭 ×</button>
+            <header class="atlas-region-head">
+              <div class="atlas-region-kicker" id="atlasRegionKicker">选择区域</div>
+              <h2 id="atlasRegionTitle">世界概览</h2>
+              <p id="atlasRegionSummary">点击地图地标后，这里会展开纸上远征式区域档案。</p>
+            </header>
+            <div class="atlas-city-map">
+              <div class="atlas-city-map-label"><span>选择内容</span></div>
+              <div class="atlas-city-network" id="atlasCityNetwork"></div>
+            </div>
+            <article class="atlas-city-detail" id="atlasCityDetail"></article>
+          </aside>
+        </div>
+
+        <footer class="atlas-world-footer">
+          <div class="atlas-week-headline" id="atlasWeekHeadline">等待本周 Scout 信号进入世界地图。</div>
+        </footer>
+      </section>
+
+      <section class="history-atlas" id="historyAtlas" aria-labelledby="historyAtlasTitle">
+        <header class="history-masthead">
+          <div>
+            <div class="history-kicker">计算机 → 互联网 → 人工智能</div>
+            <h1 class="history-title" id="historyAtlasTitle">AI Evolution <span>Atlas</span></h1>
+            <p class="history-intro">先沿“计算机 → 互联网 → 云与移动 → 深度学习 → 生成式 AI → Agent”理解普通人能感知的大故事，再下钻六条技术轨道。时间轴按变化密度展开，不按年份等距：越接近当下，空间越大。</p>
+          </div>
+          <div class="history-masthead-actions">
+            <p>面向客户、团队和普通听众的可视化讲解板：每个章节都提供生活化解释、关键事件和可直接打开的原始来源。</p>
+            <div class="history-action-row">
+              <button class="history-action" id="historyBackButton" type="button"><span data-icon="map"></span>返回 Builder World</button>
+              <a class="history-action" id="historyPermalink" href="?view=history"><span data-icon="source"></span>打开独立历史页 ↗</a>
+            </div>
+          </div>
+        </header>
+
+        <section class="history-identity" aria-labelledby="historyIdentityTitle">
+          <header class="history-identity-head">
+            <span class="history-identity-icon" data-icon="person"></span>
+            <div>
+              <span class="history-identity-kicker">人物与组织</span>
+              <h2 id="historyIdentityTitle">塑造 AI 进程的人与组织</h2>
+            </div>
+            <p>不是名人榜，而是帮助解释关键技术转向、基础设施与产品扩散的代表性角色。</p>
+          </header>
+          <div class="history-people" id="historyPeople"></div>
+          <div class="history-organizations-head">
+            <span data-icon="company"></span>
+            <strong>关键机构与平台</strong>
+          </div>
+          <div class="history-organizations" id="historyOrganizations"></div>
+        </section>
+
+        <div class="history-stage" id="historyStage">
+          <div class="history-board-header">
+            <div class="history-board-heading">
+              <strong>先看大众叙事，再下钻技术轨道</strong>
+              <span>语义时间轴：1943–1998 被压缩，2021–现在被显著展开</span>
+            </div>
+            <div class="history-track-filters" id="historyTrackFilters" aria-label="筛选 AI 历史轨道"></div>
+          </div>
+          <div class="history-board-scroll" id="historyBoardScroll">
+            <div class="history-board" id="historyBoard" aria-label="AI 历史时间地图">
+              <div class="history-scale-zones" id="historyScaleZones" aria-hidden="true"></div>
+              <div class="history-year-axis" id="historyYearAxis"></div>
+              <section class="history-public-layer" aria-labelledby="historyPublicLayerTitle">
+                <div class="history-public-label">
+                  <strong id="historyPublicLayerTitle">互联网 → AI 大故事</strong>
+                  <span>先从这里讲给普通人听</span>
+                </div>
+                <div class="history-context-chapters" id="historyContextChapters"></div>
+              </section>
+              <div class="history-lanes" id="historyLanes"></div>
+              <div class="history-scan-line" aria-hidden="true"></div>
+            </div>
+          </div>
+          <aside class="history-detail" id="historyDetail" aria-hidden="true" aria-labelledby="historyDetailTitle" inert>
+            <button class="history-detail-close" id="historyDetailClose" type="button" aria-label="关闭时代详情">×</button>
+            <div id="historyDetailContent"></div>
+          </aside>
+        </div>
+
+        <div class="history-storyline" id="historyStoryline" aria-label="AI 历史对外叙事主线"></div>
+      </section>
+
+      <section class="hero" aria-labelledby="pageTitle">
+        <div class="hero-main">
+          <div class="eyebrow"><span class="live-dot"></span><span id="runtimeLabel">每周 AI 情报</span></div>
+          <h1 id="pageTitle" aria-label="AI Builder Roadmap">
+            <span class="title-line">AI Builder</span>
+            <span class="title-line title-accent">Roadmap</span>
+          </h1>
+          <p class="hero-copy" id="pageSubtitle"></p>
+          <div class="hero-meta" id="heroMeta"></div>
+        </div>
+        <aside class="hero-panel" aria-label="本周信号摘要">
+          <div class="mission-header"><span data-icon="mission"></span><div class="hero-panel-label" id="heroWeek">等待周更</div></div>
+          <h2 id="heroHeadline">正在载入 Roadmap</h2>
+          <p id="heroSummary"></p>
+        </aside>
+      </section>
+
+      <nav class="section-nav" aria-label="页面章节">
+        <a href="#weekly"><span data-icon="radar"></span>本周变化</a>
+        <a href="#builders"><span data-icon="builder"></span>Builders</a>
+        <a href="#evolution"><span data-icon="map"></span>AI 演进图</a>
+        <a href="#output"><span data-icon="speech"></span>对外输出</a>
+        <a href="#opportunities"><span data-icon="diamond"></span>商业机会</a>
+        <a href="#method"><span data-icon="shield"></span>筛选标准</a>
+      </nav>
+
+      <section id="weekly" aria-labelledby="weeklyTitle">
+        <div class="section-head">
+          <div class="section-head-copy">
+            <div class="section-kicker">本周变化</div>
+            <h2 id="weeklyTitle">本周真正发生了什么</h2>
+            <p>只记录有一手链接的模型、技术、产品和市场变化；没有证据的预测不会进入 Roadmap。</p>
+          </div>
+          <select class="week-select" id="weekSelect" aria-label="选择周报"></select>
+        </div>
+        <div id="weeklySummary"></div>
+        <div class="grid two" id="signalGrid"></div>
+        <div class="watch-list" id="watchList"></div>
+      </section>
+
+      <section id="builders" aria-labelledby="buildersTitle">
+        <div class="section-head">
+          <div class="section-head-copy">
+            <div class="section-kicker">原创与实作</div>
+            <h2 id="buildersTitle">本周值得持续跟踪的 Builders</h2>
+            <p>账号是否入选由当周可验证行为决定，而不是粉丝量、职位或发帖频率。</p>
+          </div>
+        </div>
+        <div class="grid two" id="builderGrid"></div>
+      </section>
+
+      <section id="evolution" aria-labelledby="evolutionTitle">
+        <div class="section-head">
+          <div class="section-head-copy">
+            <div class="section-kicker">长期演进</div>
+            <h2 id="evolutionTitle">AI 演进图</h2>
+            <p>用历史层理解长期结构，用上面的周更层识别最新增量，避免被单次发布牵着走。</p>
+          </div>
+        </div>
+        <div class="track-filters" id="trackFilters"></div>
+        <div class="timeline" id="timeline"></div>
+      </section>
+
+      <section id="output" aria-labelledby="outputTitle">
+        <div class="section-head">
+          <div class="section-head-copy">
+            <div class="section-kicker">对外观点</div>
+            <h2 id="outputTitle">可直接用于对外输出的观点</h2>
+            <p>每个观点都包含判断、证据与适用受众，可作为客户交流、社交内容或内部分享的起点。</p>
+          </div>
+        </div>
+        <div class="grid three" id="talkingPointGrid"></div>
+      </section>
+
+      <section id="opportunities" aria-labelledby="opportunitiesTitle">
+        <div class="section-head">
+          <div class="section-head-copy">
+            <div class="section-kicker">商业雷达</div>
+            <h2 id="opportunitiesTitle">商业机会雷达</h2>
+            <p>把技术信号转换成买方、痛点、时机和下一步验证，而不是停留在趋势描述。</p>
+          </div>
+        </div>
+        <div class="grid three" id="opportunityGrid"></div>
+      </section>
+
+      <section id="method" aria-labelledby="methodTitle">
+        <div class="section-head">
+          <div class="section-head-copy">
+            <div class="section-kicker">筛选标准</div>
+            <h2 id="methodTitle">什么才算“值得跟踪”</h2>
+            <p>只保留能证明“正在建设、有原创判断、并能改善 AI 输入质量”的账号。</p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="rubric-list" id="rubricList"></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      AI Builder Scout · 每周五更新 · 原始来源可追溯
+    </footer>
+  </div>
+
+  <script type="application/json" id="roadmapData">__AI_ROADMAP_DATA__</script>
+  <script>
+    (() => {
+      const esc = (value) => String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+
+      const iconShapes = {
+        memory: '<path d="M2 2h4v2H4v8h8V4h-2V2h4v12H2V2zm4 3h4v2H6V5zm0 3h4v2H6V8z"/>',
+        map: '<path d="M1 3h4v4H1V3zm10 0h4v4h-4V3zM6 10h4v4H6v-4zM5 4h6v2H5V4zm2 2h2v4H7V6z"/>',
+        theme: '<path d="M7 1h2v3H7V1zm0 11h2v3H7v-3zM1 7h3v2H1V7zm11 0h3v2h-3V7zM5 5h6v6H5V5z"/>',
+        scout: '<path d="M4 2h8v2h2v8h-2v2H4v-2H2V4h2V2zm1 3v2h2V5H5zm4 0v2h2V5H9zM5 9v2h6V9H5z"/>',
+        mission: '<path d="M2 1h2v14H2V1zm2 1h9v7H4V2zm2 2v3h5V4H6z"/>',
+        trophy: '<path d="M4 1h8v2h3v5h-3v2h-2v2h3v2H3v-2h3v-2H4V8H1V3h3V1zm2 2v5h4V3H6zM3 5v1h1V5H3zm9 0v1h1V5h-1z"/>',
+        radar: '<path d="M7 1h2v2H7V1zM3 3h3v2H3V3zm7 0h3v2h-3V3zM1 7h4v2H1V7zm10 0h4v2h-4V7zM3 11h3v2H3v-2zm7 0h3v2h-3v-2zm-3 2h2v2H7v-2zM6 6h4v4H6V6z"/>',
+        builder: '<path d="M5 1h6v5H5V1zM3 7h10v7H3V7zm2 2v3h6V9H5z"/>',
+        speech: '<path d="M1 2h14v9H8l-4 3v-3H1V2zm3 3v2h8V5H4z"/>',
+        diamond: '<path d="M7 1h2v2h2v2h2v2h2v2h-2v2h-2v2H9v2H7v-2H5v-2H3V9H1V7h2V5h2V3h2V1zm0 4v6h2V5H7z"/>',
+        shield: '<path d="M2 2h12v7h-2v2h-2v2H8v2H6v-2H4v-2H2V2zm3 3v4h2v2h2V9h2V5H5z"/>',
+        signal: '<path d="M7 7h2v2H7V7zM4 4h2v2H4V4zm6 0h2v2h-2V4zM2 1h2v2H2V1zm10 0h2v2h-2V1zM4 10h2v2H4v-2zm6 0h2v2h-2v-2zM2 13h2v2H2v-2zm10 0h2v2h-2v-2z"/>',
+        timeline: '<path d="M2 2h2v12H2V2zm2 2h4v2H4V4zm0 6h7v2H4v-2zm4-7h6v4H8V3zm3 6h3v4h-3V9z"/>',
+        source: '<path d="M2 2h7v2H4v8h8V7h2v7H2V2zm7 0h5v5h-2V5.4L7.7 9.7 6.3 8.3 10.6 4H9V2z"/>',
+        check: '<path d="M1 8h3v3h3v3h3v-3H7V8H4V5H1v3zm9 0h2V5h3V2h-3v3h-2v3z"/>',
+        lock: '<path d="M4 6V3h2V1h4v2h2v3h2v9H2V6h2zm2 0h4V3H6v3zm1 3v3h2V9H7z"/>',
+        person: '<path d="M6 1h4v2h2v4h-2v2h3v2h2v4H1v-4h2V9h3V7H4V3h2V1zm0 2v4h4V3H6zm-3 8v2h10v-2H3z"/>',
+        company: '<path d="M3 1h10v14H3V1zm2 2v2h2V3H5zm4 0v2h2V3H9zM5 7v2h2V7H5zm4 0v2h2V7H9zm-2 4v2h2v-2H7z"/>'
+      };
+
+      const icon = (name) => `
+        <svg class="pixel-icon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" focusable="false">
+          ${iconShapes[name] || iconShapes.signal}
+        </svg>`;
+
+      const hydrateIcons = (root = document) => {
+        root.querySelectorAll("[data-icon]").forEach((slot) => {
+          slot.innerHTML = icon(slot.dataset.icon);
+        });
+      };
+
+      const safeUrl = (value) => {
+        try {
+          const parsed = new URL(String(value));
+          if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return "";
+          const hostname = parsed.hostname.toLowerCase().replace(/^www\./, "");
+          if (hostname === "twitter.com" || hostname.endsWith(".twitter.com")) {
+            parsed.hostname = "x.com";
+          }
+          return parsed.href;
+        } catch {
+          return "";
+        }
+      };
+
+      const sourceDescriptor = (value) => {
+        const href = safeUrl(value);
+        if (!href) return null;
+        const hostname = new URL(href).hostname.toLowerCase().replace(/^www\./, "");
+        if (hostname === "x.com" || hostname.endsWith(".x.com")) {
+          return { href, platform: "x", label: "在 X 查看原帖 ↗" };
+        }
+        if (hostname === "youtube.com" || hostname.endsWith(".youtube.com") || hostname === "youtu.be") {
+          return { href, platform: "youtube", label: "观看原始视频 ↗" };
+        }
+        return { href, platform: "official", label: "查看原始来源 ↗" };
+      };
+
+      const sourceAnchor = (value, className = "source-link") => {
+        const source = sourceDescriptor(value);
+        return source
+          ? `<a class="${esc(className)}" data-source-platform="${source.platform}" data-navigation="same-tab" href="${esc(source.href)}">${esc(source.label)}</a>`
+          : "";
+      };
+
+      const link = (value) => sourceAnchor(value);
+
+      const empty = (title, copy) =>
+        `<div class="empty"><strong>${esc(title)}</strong>${esc(copy)}</div>`;
+
+      const clamp = (value, min, max) => Math.min(max, Math.max(min, Number(value) || 0));
+      const trackIcon = {
+        foundations: "shield",
+        learning: "builder",
+        architecture: "map",
+        scale: "signal",
+        interface: "speech",
+        ecosystem: "diamond"
+      };
+      const trackMap = new Map();
+      let data;
+
+      try {
+        data = JSON.parse(document.getElementById("roadmapData").textContent);
+      } catch (error) {
+        document.getElementById("app").innerHTML =
+          `<div class="fatal"><strong>Roadmap 数据无法读取。</strong><br>${esc(error.message)}</div>`;
+        return;
+      }
+
+      hydrateIcons();
+      (data.tracks || []).forEach((track) => trackMap.set(track.id, track));
+      const updates = [...(data.weekly_updates || [])].sort((a, b) => b.week.localeCompare(a.week));
+      let currentUpdate = updates[0] || null;
+      let atlasActiveRegion = null;
+      let historyActiveNode = null;
+      let historyActiveTrack = "all";
+
+      const meta = data.meta || {};
+      document.title = meta.title || "AI Builder Roadmap";
+      document.getElementById("pageTitle").setAttribute("aria-label", meta.title || "AI Builder Roadmap");
+      document.getElementById("pageSubtitle").textContent = meta.subtitle || "";
+      document.getElementById("runtimeLabel").textContent =
+        data.runtime?.mode === "live" ? "本周内容已更新" : "长期知识地图";
+      document.getElementById("heroMeta").innerHTML = [
+        meta.cadence,
+        `历史基线 ${meta.baseline_as_of || "未标注"}`,
+        "一手来源优先"
+      ].filter(Boolean).map((item) => `<span class="pill">${esc(item)}</span>`).join("");
+
+      const renderHero = () => {
+        document.getElementById("heroWeek").textContent = currentUpdate
+          ? `本周更新 · ${currentUpdate.week}`
+          : "等待首个周五更新";
+        document.getElementById("heroHeadline").textContent = currentUpdate?.headline || "历史认知地图已就绪";
+        document.getElementById("heroSummary").textContent =
+          currentUpdate?.executive_summary || "周五 Scout 完成后，本周 builder、产品变化、输出观点和机会假设会自动出现在这里。";
+      };
+
+      const currentSourceUrls = () => {
+        if (!currentUpdate) return [];
+        const items = [
+          ...(currentUpdate.signals || []),
+          ...(currentUpdate.builders || []),
+          ...(currentUpdate.talking_points || []),
+          ...(currentUpdate.opportunities || []),
+          ...(currentUpdate.watch_next || [])
+        ];
+        return [...new Set(items.map((item) => safeUrl(item.source_url)).filter(Boolean))];
+      };
+
+      const atlasRegions = () => {
+        const signals = currentUpdate?.signals || [];
+        const builders = currentUpdate?.builders || [];
+        const talkingPoints = currentUpdate?.talking_points || [];
+        const opportunities = currentUpdate?.opportunities || [];
+        const fallbackCity = (title, copy) => ({
+          kicker: "等待更新",
+          title,
+          copy,
+          insight: "新的来源支持内容会在下一次周五 Scout 后进入这里。",
+          meta: [],
+          icon: "signal",
+          sourceUrl: "",
+          placeholder: true
+        });
+        const signalCities = signals.map((signal) => ({
+          kicker: trackMap.get(signal.track)?.label || signal.track || "本周信号",
+          title: signal.title,
+          copy: signal.summary,
+          insight: `为什么重要：${signal.why_it_matters}`,
+          meta: [signal.source_name, signal.published_at].filter(Boolean),
+          icon: trackIcon[signal.track] || "radar",
+          sourceUrl: signal.source_url
+        }));
+        const builderCities = builders.map((builder) => ({
+          kicker: builder.role || "本周 Builder",
+          title: builder.name,
+          copy: builder.evidence,
+          insight: `为什么持续跟：${builder.why_follow}`,
+          meta: [builder.handle ? `@${builder.handle}` : ""].filter(Boolean),
+          icon: "builder",
+          sourceUrl: builder.source_url
+        }));
+        const evolutionCities = (data.tracks || []).map((track) => {
+          const eras = (data.eras || [])
+            .filter((era) => era.track === track.id)
+            .sort((a, b) => a.sort_year - b.sort_year);
+          const latest = eras[eras.length - 1];
+          return {
+            kicker: track.label,
+            title: track.label,
+            copy: latest?.summary || "该技术轨道等待历史节点。",
+            insight: latest?.implication ? `最新认知锚点：${latest.implication}` : "浏览完整档案查看这条轨道。",
+            meta: [latest?.period].filter(Boolean),
+            icon: trackIcon[track.id] || "timeline",
+            sourceUrl: latest?.source_url || ""
+          };
+        });
+        const outputCities = talkingPoints.map((point) => ({
+          kicker: "可输出观点",
+          title: point.claim,
+          copy: point.evidence,
+          insight: `适用受众：${point.audience}`,
+          meta: [point.audience].filter(Boolean),
+          icon: "speech",
+          sourceUrl: point.source_url
+        }));
+        const opportunityCities = opportunities.map((opportunity) => ({
+          kicker: "商业机会",
+          title: opportunity.title,
+          copy: opportunity.thesis,
+          insight: `下一步：${opportunity.next_step}`,
+          meta: [opportunity.buyer].filter(Boolean),
+          icon: "diamond",
+          sourceUrl: opportunity.source_url
+        }));
+        const methodIcon = {
+          building: "builder",
+          originality: "signal",
+          relevance: "diamond",
+          source_quality: "source"
+        };
+        const methodCities = (data.rubric || []).map((item) => ({
+          kicker: "筛选标准",
+          title: item.label,
+          copy: item.description,
+          insight: "只有具备可验证证据、原创判断和实际输入价值的内容才会进入地图。",
+          meta: [],
+          icon: methodIcon[item.key] || "shield",
+          sourceUrl: ""
+        }));
+        return [
+          {
+            id: "weekly",
+            label: "信号港",
+            subtitle: "本周变化",
+            icon: "radar",
+            target: "#weekly",
+            x: 15,
+            y: 50,
+            focusX: "15%",
+            focusY: "50%",
+            panX: "6%",
+            panY: "-1%",
+            summary: "本周所有可验证的新变化在这里靠岸，并按技术方向整理为可直接阅读的证据卡片。",
+            cities: signalCities.length ? signalCities : [fallbackCity("港口等待新船", "本周暂无合格技术或产品变化。")]
+          },
+          {
+            id: "builders",
+            label: "Builder 城",
+            subtitle: "原创与实作",
+            icon: "builder",
+            target: "#builders",
+            x: 32,
+            y: 22,
+            focusX: "32%",
+            focusY: "22%",
+            panX: "2%",
+            panY: "6%",
+            summary: "这里只保留正在建设、有原创判断，并且能改善你 AI 输入质量的 builders。",
+            cities: builderCities.length ? builderCities : [fallbackCity("城堡保持空席", "本周没有账号同时满足可验证建设、原创判断与输入价值标准。")]
+          },
+          {
+            id: "evolution",
+            label: "演进山脉",
+            subtitle: "AI 历史",
+            icon: "map",
+            target: "#evolution",
+            x: 48,
+            y: 54,
+            focusX: "48%",
+            focusY: "54%",
+            panX: "-8%",
+            panY: "-1%",
+            summary: "山脉代表长期结构；每条山谷是一条技术轨道，卡片展示其中的关键时期。",
+            cities: evolutionCities.length ? evolutionCities : [fallbackCity("历史山脉", "稳定 AI 演进基线正在载入。")]
+          },
+          {
+            id: "output",
+            label: "输出工坊",
+            subtitle: "对外观点",
+            icon: "speech",
+            target: "#output",
+            x: 68,
+            y: 24,
+            focusX: "68%",
+            focusY: "24%",
+            panX: "-17%",
+            panY: "6%",
+            summary: "每座工作室把信号加工成可对外表达的判断，并保持证据、受众与语境可见。",
+            cities: outputCities.length ? outputCities : [fallbackCity("工作室等待开灯", "本周 Output Kit 尚未生成。")]
+          },
+          {
+            id: "opportunities",
+            label: "机会边疆",
+            subtitle: "商业雷达",
+            icon: "diamond",
+            target: "#opportunities",
+            x: 84,
+            y: 51,
+            focusX: "84%",
+            focusY: "51%",
+            panX: "-27%",
+            panY: "-1%",
+            summary: "地图边疆把技术变化翻译为买方、痛点、时机和下一步验证。",
+            cities: opportunityCities.length ? opportunityCities : [fallbackCity("边疆等待勘探", "本周暂无足够强的商业机会假设。")]
+          },
+          {
+            id: "method",
+            label: "证据库",
+            subtitle: "筛选标准",
+            icon: "shield",
+            target: "#method",
+            x: 67,
+            y: 79,
+            focusX: "67%",
+            focusY: "79%",
+            panX: "-17%",
+            panY: "-10%",
+            summary: "这里保存进入地图的规则：没有原始来源、building 证据或原创判断的内容不会进入知识地图。",
+            cities: methodCities.length ? methodCities : [fallbackCity("证据金库", "筛选标准正在载入。")]
+          }
+        ];
+      };
+
+      const renderAtlasCity = (region, cityIndex) => {
+        const city = region.cities[cityIndex];
+        const network = document.getElementById("atlasCityNetwork");
+        network.querySelectorAll("[data-atlas-city]").forEach((button, index) => {
+          button.setAttribute("aria-pressed", String(index === cityIndex));
+        });
+        const detail = document.getElementById("atlasCityDetail");
+        detail.classList.remove("is-entering");
+        void detail.offsetWidth;
+        detail.classList.add("is-entering");
+        detail.innerHTML = `
+          <div class="atlas-city-kicker">${icon(city.icon || region.icon)}<span>${esc(city.kicker)}</span></div>
+          <h3>${esc(city.title)}</h3>
+          <p>${esc(city.copy)}</p>
+          <p class="atlas-city-insight">${esc(city.insight)}</p>
+          ${city.meta.length ? `<div class="atlas-city-meta">${city.meta.map((item) => `<span>${esc(item)}</span>`).join("")}</div>` : ""}
+          <div class="atlas-panel-actions">
+            ${sourceAnchor(city.sourceUrl, "atlas-panel-action primary")}
+            ${region.id === "evolution" ? `<button class="atlas-panel-action primary" id="atlasHistoryOpen" type="button">${icon("timeline")}AI 历史版图</button>` : ""}
+            <button class="atlas-panel-action" id="atlasArchiveOpen" type="button">${icon("memory")}完整区域档案</button>
+          </div>
+        `;
+        document.getElementById("atlasHistoryOpen")?.addEventListener("click", () => {
+          setRoadmapView("history");
+        });
+        document.getElementById("atlasArchiveOpen").addEventListener("click", () => {
+          setRoadmapView("archive", region.target);
+        });
+      };
+
+      const openAtlasRegion = (regionId) => {
+        const region = atlasRegions().find((item) => item.id === regionId);
+        if (!region) return;
+        atlasActiveRegion = regionId;
+        const stage = document.getElementById("atlasStage");
+        stage.style.setProperty("--focus-x", region.focusX);
+        stage.style.setProperty("--focus-y", region.focusY);
+        stage.style.setProperty("--pan-x", region.panX);
+        stage.style.setProperty("--pan-y", region.panY);
+        stage.dataset.activeRegion = region.id;
+        stage.classList.add("is-exploring");
+        document.body.classList.add("atlas-panel-open");
+        const panel = document.getElementById("atlasRegionPanel");
+        panel.removeAttribute("inert");
+        panel.setAttribute("aria-hidden", "false");
+        document.querySelectorAll("[data-atlas-region]").forEach((button) => {
+          button.setAttribute("aria-pressed", String(button.dataset.atlasRegion === regionId));
+        });
+        document.getElementById("atlasRegionKicker").textContent = region.subtitle;
+        document.getElementById("atlasRegionTitle").textContent = region.label;
+        document.getElementById("atlasRegionSummary").textContent = region.summary;
+        const network = document.getElementById("atlasCityNetwork");
+        network.innerHTML = region.cities.map((city, index) => `
+          <button class="atlas-city-node" type="button" data-atlas-city="${index}" aria-pressed="${index === 0}" style="--delay:${index * 0.06}s">
+            <span class="atlas-city-node-icon">${icon(city.icon || region.icon)}</span>
+            <span class="atlas-city-node-label">${esc(city.kicker)}</span>
+            <strong>${esc(city.title)}</strong>
+          </button>
+        `).join("");
+        network.querySelectorAll("[data-atlas-city]").forEach((button) => {
+          button.addEventListener("click", () => renderAtlasCity(region, Number(button.dataset.atlasCity)));
+        });
+        renderAtlasCity(region, 0);
+        window.requestAnimationFrame(() => {
+          document.getElementById("atlasPanelClose").focus({ preventScroll: true });
+        });
+      };
+
+      const closeAtlasRegion = (restoreFocus = true) => {
+        const stage = document.getElementById("atlasStage");
+        const activeButton = document.querySelector(`[data-atlas-region="${atlasActiveRegion}"]`);
+        stage.classList.remove("is-exploring");
+        stage.removeAttribute("data-active-region");
+        document.body.classList.remove("atlas-panel-open");
+        const panel = document.getElementById("atlasRegionPanel");
+        panel.setAttribute("aria-hidden", "true");
+        panel.setAttribute("inert", "");
+        document.querySelectorAll("[data-atlas-region]").forEach((button) => {
+          button.setAttribute("aria-pressed", "false");
+        });
+        atlasActiveRegion = null;
+        if (restoreFocus) activeButton?.focus({ preventScroll: true });
+      };
+
+      const renderAtlas = () => {
+        const regions = atlasRegions();
+        document.getElementById("atlasWeek").textContent = currentUpdate
+          ? `本周更新 · ${currentUpdate.week}`
+          : "长期底图 · 等待周更";
+        document.getElementById("atlasWeekHeadline").textContent =
+          currentUpdate?.headline || "等待本周 Scout 信号进入世界地图。";
+        document.getElementById("atlasLandmarks").innerHTML = regions.map((region, index) => {
+          const regionNodeCount = region.cities.filter((city) => !city.placeholder).length;
+          const state = regionNodeCount ? "has-content" : "empty";
+          return `
+            <button
+              class="atlas-landmark ${state}"
+              type="button"
+              data-atlas-region="${region.id}"
+              aria-pressed="${atlasActiveRegion === region.id}"
+              style="--x:${region.x}%;--y:${region.y}%;--delay:${index * 0.08}s"
+            >
+              <span class="atlas-landmark-code">${icon(region.icon)}</span>
+              <span class="atlas-landmark-copy"><strong>${esc(region.label)}</strong><small>${esc(region.subtitle)}</small></span>
+            </button>
+          `;
+        }).join("");
+        document.querySelectorAll("[data-atlas-region]").forEach((button) => {
+          button.addEventListener("click", () => openAtlasRegion(button.dataset.atlasRegion));
+        });
+        if (atlasActiveRegion) openAtlasRegion(atlasActiveRegion);
+      };
+
+      const historyScale = [
+        { start: 1943, end: 1998, from: 16, to: 28 },
+        { start: 1998, end: 2011, from: 28, to: 40 },
+        { start: 2011, end: 2017, from: 40, to: 55 },
+        { start: 2017, end: 2021, from: 55, to: 69 },
+        { start: 2021, end: 2023, from: 69, to: 81 },
+        { start: 2023, end: 2026, from: 81, to: 96 }
+      ];
+
+      const historyYearPosition = (year) => {
+        const firstSegment = historyScale[0];
+        const lastSegment = historyScale[historyScale.length - 1];
+        const bounded = Math.max(
+          firstSegment.start,
+          Math.min(lastSegment.end, Number(year) || firstSegment.start)
+        );
+        const segment = historyScale.find((item) => bounded <= item.end) || lastSegment;
+        const progress = (bounded - segment.start) / (segment.end - segment.start);
+        return segment.from + progress * (segment.to - segment.from);
+      };
+
+      const setHistoryTrack = (trackId) => {
+        historyActiveTrack = trackId;
+        document.querySelectorAll("[data-history-track]").forEach((button) => {
+          button.setAttribute("aria-pressed", String(button.dataset.historyTrack === trackId));
+        });
+        document.querySelectorAll("[data-history-lane]").forEach((lane) => {
+          lane.classList.toggle("is-dimmed", trackId !== "all" && lane.dataset.historyLane !== trackId);
+        });
+      };
+
+      const closeHistoryDetail = (restoreFocus = true) => {
+        const activeButton = document.querySelector(`[data-history-node="${historyActiveNode}"]`);
+        const panel = document.getElementById("historyDetail");
+        panel.classList.remove("is-open");
+        panel.setAttribute("aria-hidden", "true");
+        panel.setAttribute("inert", "");
+        document.body.classList.remove("history-panel-open");
+        document.querySelectorAll("[data-history-node]").forEach((button) => {
+          button.setAttribute("aria-pressed", "false");
+        });
+        historyActiveNode = null;
+        if (restoreFocus) activeButton?.focus({ preventScroll: true });
+      };
+
+      const showHistoryDetail = (nodeId, item, contextLabel) => {
+        historyActiveNode = nodeId;
+        document.querySelectorAll("[data-history-node]").forEach((button) => {
+          button.setAttribute("aria-pressed", String(button.dataset.historyNode === nodeId));
+        });
+        document.getElementById("historyDetailContent").innerHTML = `
+          <div class="history-detail-period">${esc(item.period)} · ${esc(contextLabel)}</div>
+          <h2 id="historyDetailTitle">${esc(item.title)}</h2>
+          <p class="history-detail-summary">${esc(item.summary)}</p>
+          ${item.everyday_example ? `
+            <div class="history-detail-block">
+              <h3>生活化理解</h3>
+              <div class="history-implication">${esc(item.everyday_example)}</div>
+            </div>
+          ` : ""}
+          <div class="history-detail-block">
+            <h3>关键节点</h3>
+            <ul>${(item.landmarks || []).map((landmark) => `<li>${esc(landmark)}</li>`).join("")}</ul>
+          </div>
+          <div class="history-detail-block">
+            <h3>${item.everyday_example ? "这意味着什么" : "对外讲法"}</h3>
+            <div class="history-implication">${esc(item.implication)}</div>
+          </div>
+          ${sourceAnchor(item.source_url, "history-source-action")}
+        `;
+        const panel = document.getElementById("historyDetail");
+        panel.removeAttribute("inert");
+        panel.setAttribute("aria-hidden", "false");
+        panel.classList.add("is-open");
+        document.body.classList.add("history-panel-open");
+        const node = document.querySelector(`[data-history-node="${nodeId}"]`);
+        const scroll = document.getElementById("historyBoardScroll");
+        if (node && scroll) {
+          const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+          scroll.scrollTo({
+            left: Math.max(0, node.offsetLeft - scroll.clientWidth / 2),
+            behavior: reduceMotion ? "auto" : "smooth"
+          });
+        }
+        window.requestAnimationFrame(() => {
+          document.getElementById("historyDetailClose").focus({ preventScroll: true });
+        });
+      };
+
+      const openHistoryDetail = (eraId) => {
+        const era = (data.eras || []).find((item) => item.id === eraId);
+        if (!era) return;
+        const track = trackMap.get(era.track);
+        showHistoryDetail(`era-${eraId}`, era, track?.label || era.track);
+      };
+
+      const openHistoryContext = (chapterId) => {
+        const chapter = (data.context_chapters || []).find((item) => item.id === chapterId);
+        if (!chapter) return;
+        showHistoryDetail(`context-${chapterId}`, chapter, "互联网 → AI 大故事");
+      };
+
+      const entityInitials = (name) => String(name || "")
+        .split(/\s+/)
+        .map((part) => part[0])
+        .join("")
+        .slice(0, 3)
+        .toUpperCase();
+
+      const bindHistoryMediaFallbacks = () => {
+        document.querySelectorAll("[data-history-media]").forEach((image) => {
+          const markMissing = () => image.parentElement?.classList.add("is-missing");
+          image.addEventListener("error", markMissing, { once: true });
+          if (image.complete && !image.naturalWidth) markMissing();
+        });
+      };
+
+      const renderHistoryIdentity = () => {
+        const people = data.history_people || [];
+        const organizations = data.history_organizations || [];
+        document.getElementById("historyPeople").innerHTML = people.map((person, index) => {
+          const imageUrl = safeUrl(person.image_url);
+          const profileUrl = safeUrl(person.profile_url);
+          const creditUrl = safeUrl(person.credit_url);
+          return `
+            <article class="history-person" style="--identity-delay:${Math.min(index * 0.055, 0.3)}s">
+              <a class="history-person-main" href="${esc(profileUrl)}" data-navigation="same-tab" aria-label="了解 ${esc(person.name)}">
+                <div class="history-person-media">
+                  <span aria-hidden="true">${esc(entityInitials(person.name))}</span>
+                  <img
+                    data-history-media
+                    src="${esc(imageUrl)}"
+                    alt="${esc(`${person.name}，${person.role}`)}"
+                    loading="lazy"
+                    decoding="async"
+                    referrerpolicy="no-referrer"
+                  >
+                </div>
+                <div class="history-person-copy">
+                  <span class="history-person-period">${esc(person.period)}</span>
+                  <h3>${esc(person.name)}</h3>
+                  <span class="history-person-role">${esc(person.role)}</span>
+                  <p class="history-person-impact">${esc(person.impact)}</p>
+                </div>
+              </a>
+              <a class="history-photo-credit" href="${esc(creditUrl)}" data-navigation="same-tab">
+                图像来源 · ${esc(person.credit)}
+              </a>
+            </article>
+          `;
+        }).join("");
+
+        document.getElementById("historyOrganizations").innerHTML = organizations.map((organization, index) => {
+          const logoUrl = safeUrl(organization.logo_url);
+          const profileUrl = safeUrl(organization.profile_url);
+          return `
+            <a
+              class="history-organization"
+              href="${esc(profileUrl)}"
+              data-navigation="same-tab"
+              style="--identity-delay:${Math.min(index * 0.045, 0.3)}s"
+              aria-label="了解 ${esc(organization.name)}"
+            >
+              <span class="history-organization-logo">
+                <span aria-hidden="true">${esc(entityInitials(organization.name))}</span>
+                <img data-history-media src="${esc(logoUrl)}" alt="" loading="lazy" decoding="async">
+              </span>
+              <span class="history-organization-copy">
+                <strong>${esc(organization.name)}</strong>
+                <span>${esc(organization.period)}</span>
+                <small>${esc(organization.role)}</small>
+              </span>
+            </a>
+          `;
+        }).join("");
+        bindHistoryMediaFallbacks();
+      };
+
+      const renderHistoryAtlas = () => {
+        const eras = [...(data.eras || [])].sort((a, b) => a.sort_year - b.sort_year);
+        const contextChapters = [...(data.context_chapters || [])].sort((a, b) => a.start_year - b.start_year);
+        const tracks = data.tracks || [];
+        const contextIcons = ["memory", "map", "radar", "timeline", "speech", "mission"];
+        renderHistoryIdentity();
+
+        const permalink = new URL(window.location.href);
+        permalink.searchParams.set("view", "history");
+        document.getElementById("historyPermalink").href = permalink.href;
+
+        document.getElementById("historyTrackFilters").innerHTML = `
+          <button class="history-track-filter" type="button" data-history-track="all" aria-pressed="true">全部轨道</button>
+          ${tracks.map((track) => `
+            <button class="history-track-filter" type="button" data-history-track="${esc(track.id)}" aria-pressed="false">
+              ${esc(track.label)}
+            </button>
+          `).join("")}
+        `;
+
+        document.getElementById("historyScaleZones").innerHTML = contextChapters.map((chapter) => {
+          const start = historyYearPosition(chapter.start_year);
+          const end = historyYearPosition(chapter.end_year);
+          return `
+            <span class="history-scale-zone" style="--x-start:${start}%;--x-width:${Math.max(1, end - start)}%">
+              <span>${esc(chapter.period)}</span>
+            </span>
+          `;
+        }).join("");
+
+        const tickYears = [1943, 1969, 1989, 1998, 2007, 2011, 2012, 2017, 2021, 2022, 2023, 2024, 2025, 2026];
+        document.getElementById("historyYearAxis").innerHTML = tickYears.map((year, index) => `
+          <span class="history-year-tick" style="--x:${historyYearPosition(year)}%;--tick-row:${index % 3}">
+            ${year === 2026 ? "NOW" : year}
+          </span>
+        `).join("");
+
+        document.getElementById("historyContextChapters").innerHTML = contextChapters.map((chapter, index) => {
+          const start = historyYearPosition(chapter.start_year);
+          const end = historyYearPosition(chapter.end_year);
+          return `
+            <button
+              class="history-context-chapter"
+              type="button"
+              data-history-context="${esc(chapter.id)}"
+              data-history-node="context-${esc(chapter.id)}"
+              aria-pressed="false"
+              aria-label="${esc(`${chapter.period} ${chapter.title}`)}"
+              style="--x-start:${start}%;--x-width:${Math.max(1, end - start)}%;--chapter-delay:${Math.min(index * 0.08, 0.4)}s"
+            >
+              <span class="history-context-heading">
+                <span class="history-context-icon">${icon(contextIcons[index] || "timeline")}</span>
+                <span class="history-context-period">${esc(chapter.period)}</span>
+              </span>
+              <strong>${esc(chapter.title)}</strong>
+              <small>${esc(chapter.everyday_example)}</small>
+            </button>
+          `;
+        }).join("");
+
+        document.getElementById("historyLanes").innerHTML = tracks.map((track, rowIndex) => {
+          const trackEras = eras.filter((era) => era.track === track.id);
+          return `
+            <div class="history-lane" data-history-lane="${esc(track.id)}" style="--row:${rowIndex}">
+              <button class="history-lane-label" type="button" data-history-lane-focus="${esc(track.id)}">
+                ${icon(trackIcon[track.id] || "timeline")}
+                <span>${esc(track.label)}</span>
+              </button>
+              ${trackEras.map((era) => {
+                const eraIndex = eras.findIndex((item) => item.id === era.id);
+                return `
+                  <button
+                    class="history-era-node"
+                    type="button"
+                    data-history-era="${esc(era.id)}"
+                    data-history-node="era-${esc(era.id)}"
+                    aria-pressed="false"
+                    aria-label="${esc(`${era.period} ${era.title}`)}"
+                    style="--x:${historyYearPosition(era.sort_year)}%;--station-delay:${Math.min(eraIndex * 0.07, 0.8)}s"
+                  >
+                    <span class="history-station-dot" aria-hidden="true"></span>
+                    <span class="history-era-copy">
+                      <span class="history-era-period">${esc(era.period)}</span>
+                      <small>${esc(era.title)}</small>
+                    </span>
+                  </button>
+                `;
+              }).join("")}
+            </div>
+          `;
+        }).join("");
+
+        document.getElementById("historyStoryline").innerHTML = contextChapters.map((chapter) => `
+          <article class="history-story">
+            <span class="history-story-index">${esc(chapter.period)}</span>
+            <h3>${esc(chapter.title)}</h3>
+            <p>${esc(chapter.summary)}</p>
+          </article>
+        `).join("");
+
+        document.querySelectorAll("[data-history-track]").forEach((button) => {
+          button.addEventListener("click", () => setHistoryTrack(button.dataset.historyTrack));
+        });
+        document.querySelectorAll("[data-history-lane-focus]").forEach((button) => {
+          button.addEventListener("click", () => setHistoryTrack(button.dataset.historyLaneFocus));
+        });
+        document.querySelectorAll("[data-history-context]").forEach((button) => {
+          button.addEventListener("click", () => openHistoryContext(button.dataset.historyContext));
+        });
+        document.querySelectorAll("[data-history-era]").forEach((button) => {
+          button.addEventListener("click", () => openHistoryDetail(button.dataset.historyEra));
+        });
+        setHistoryTrack(historyActiveTrack);
+      };
+
+      const setRoadmapView = (view, target = "", focusDestination = true) => {
+        const nextView = ["map", "archive", "history"].includes(view) ? view : "map";
+        const sourceControlStaysVisible = Boolean(document.activeElement?.closest(".topbar"));
+        if (nextView !== "map" && document.getElementById("atlasStage").classList.contains("is-exploring")) {
+          closeAtlasRegion(false);
+        }
+        if (nextView !== "history" && document.getElementById("historyDetail").classList.contains("is-open")) {
+          closeHistoryDetail(false);
+        }
+        document.body.dataset.view = nextView;
+        document.getElementById("viewToggleLabel").textContent = nextView === "archive" ? "地图模式" : "档案模式";
+        document.getElementById("historyViewLabel").textContent = nextView === "history" ? "Builder World" : "历史版图";
+        const historyButton = document.getElementById("historyViewButton");
+        historyButton.setAttribute("aria-pressed", String(nextView === "history"));
+        historyButton.setAttribute(
+          "aria-label",
+          nextView === "history" ? "返回 AI Builder 世界地图" : "打开 AI 历史版图"
+        );
+        document.getElementById("viewToggle").setAttribute(
+          "aria-label",
+          nextView === "archive" ? "返回 AI Builder 世界地图" : "打开完整档案模式"
+        );
+
+        const nextUrl = new URL(window.location.href);
+        if (nextView === "map") {
+          nextUrl.searchParams.delete("view");
+        } else {
+          nextUrl.searchParams.set("view", nextView);
+        }
+        window.history.replaceState({}, "", nextUrl);
+
+        if (nextView === "archive" && target) {
+          window.requestAnimationFrame(() => {
+            const destination = document.querySelector(target);
+            if (!destination) return;
+            destination.setAttribute("tabindex", "-1");
+            destination.scrollIntoView({ block: "start" });
+            destination.focus({ preventScroll: true });
+          });
+        } else if (nextView === "archive") {
+          window.requestAnimationFrame(() => {
+            document.querySelector(".hero").scrollIntoView({ block: "start" });
+            if (focusDestination && !sourceControlStaysVisible) {
+              document.getElementById("viewToggle").focus({ preventScroll: true });
+            }
+          });
+        } else if (nextView === "history") {
+          window.requestAnimationFrame(() => {
+            document.getElementById("historyAtlas").scrollIntoView({ block: "start" });
+            if (focusDestination && !sourceControlStaysVisible) {
+              document.getElementById("historyBackButton").focus({ preventScroll: true });
+            }
+          });
+        } else {
+          window.requestAnimationFrame(() => {
+            document.getElementById("atlasWorld").scrollIntoView({ block: "start" });
+            if (focusDestination && !sourceControlStaysVisible) {
+              historyButton.focus({ preventScroll: true });
+            }
+          });
+        }
+      };
+
+      const renderWeekPicker = () => {
+        const picker = document.getElementById("weekSelect");
+        if (!updates.length) {
+          picker.innerHTML = `<option>等待首个周报</option>`;
+          picker.disabled = true;
+          return;
+        }
+        picker.disabled = false;
+        picker.innerHTML = updates.map((update) =>
+          `<option value="${esc(update.week)}">${esc(update.week)} · ${esc(update.headline)}</option>`
+        ).join("");
+        picker.value = currentUpdate.week;
+      };
+
+      const renderWeekly = () => {
+        const summary = document.getElementById("weeklySummary");
+        const signalGrid = document.getElementById("signalGrid");
+        const watchList = document.getElementById("watchList");
+        if (!currentUpdate) {
+          summary.innerHTML = empty("周更层尚未生成", "历史演进图可以先浏览；自动任务会在周五写入第一版动态信号。");
+          signalGrid.innerHTML = "";
+          watchList.innerHTML = "";
+          return;
+        }
+        summary.innerHTML = `
+          <div class="summary-banner">
+            <div class="summary-index">${icon("radar")}</div>
+            <div>
+              <div class="section-kicker">本周摘要</div>
+              <h3>${esc(currentUpdate.headline)}</h3>
+              <p>${esc(currentUpdate.executive_summary)}</p>
+            </div>
+          </div>`;
+        const signals = currentUpdate.signals || [];
+        signalGrid.innerHTML = signals.length ? signals.map((signal) => {
+          const track = trackMap.get(signal.track);
+          return `
+            <article class="card">
+              <div class="card-top">
+                <span class="card-icon">${icon(trackIcon[signal.track] || "signal")}</span>
+                <div>
+                  <div class="section-kicker">${esc(track?.label || signal.track || "本周信号")}</div>
+                  <h3>${esc(signal.title)}</h3>
+                </div>
+              </div>
+              <p>${esc(signal.summary)}</p>
+              <div class="tag-row">
+                ${signal.published_at ? `<span class="tag">${esc(signal.published_at)}</span>` : ""}
+                ${signal.source_name ? `<span class="tag accent">${esc(signal.source_name)}</span>` : ""}
+              </div>
+              <p><strong>为什么重要：</strong>${esc(signal.why_it_matters)}</p>
+              ${link(signal.source_url)}
+            </article>`;
+        }).join("") : empty("本周无合格技术或产品变化", "没有足够证据的内容不会为了凑数进入 Roadmap。");
+
+        const watch = currentUpdate.watch_next || [];
+        watchList.innerHTML = watch.length
+          ? `<div class="section-kicker">接下来观察什么</div>` + watch.map((item) => `
+              <article class="watch-item">
+                <div class="watch-number">${icon("radar")}</div>
+                <div><strong>${esc(item.question)}</strong><span>${esc(item.why)}</span></div>
+                ${link(item.source_url)}
+              </article>`).join("")
+          : "";
+      };
+
+      const scoreBar = (label, value, max) => `
+        <div class="score-bar">
+          <div class="score-bar-label"><span>${esc(label)}</span><span>${esc(value)}/${esc(max)}</span></div>
+          <div class="score-track"><div class="score-fill" style="--width:${clamp((value / max) * 100, 0, 100)}%"></div></div>
+        </div>`;
+
+      const renderBuilders = () => {
+        const container = document.getElementById("builderGrid");
+        const builders = currentUpdate?.builders || [];
+        container.innerHTML = builders.length ? builders.map((builder) => {
+          const breakdown = builder.breakdown || {};
+          const handle = builder.handle ? ` · ${builder.handle} on X` : "";
+          return `
+            <article class="card builder-card">
+              <div class="score-ring">
+                <strong>${esc(builder.score)}</strong>
+              </div>
+              <div>
+                <div class="section-kicker">来源可验证</div>
+                <h3>${esc(builder.name)}</h3>
+                <div class="builder-meta">${esc((builder.role || "") + handle)}</div>
+                <p>${esc(builder.evidence)}</p>
+                <div class="score-bars">
+                  ${scoreBar("实作", breakdown.building || 0, 40)}
+                  ${scoreBar("原创", breakdown.originality || 0, 25)}
+                  ${scoreBar("输入价值", breakdown.relevance || 0, 25)}
+                  ${scoreBar("来源", breakdown.source_quality || 0, 10)}
+                </div>
+                <p><strong>为什么持续跟：</strong>${esc(builder.why_follow)}</p>
+                ${link(builder.source_url)}
+              </div>
+            </article>`;
+        }).join("") : empty("本周没有值得持续跟踪的新账号", "宁可留空，也不把高频发帖或二手转述误判为真正的 builder 信号。");
+      };
+
+      const renderTalkingPoints = () => {
+        const container = document.getElementById("talkingPointGrid");
+        const points = currentUpdate?.talking_points || [];
+        container.innerHTML = points.length ? points.map((point) => `
+          <article class="card talking-point">
+            <div>
+              <div class="section-kicker">可输出观点</div>
+              <p class="claim">${esc(point.claim)}</p>
+            </div>
+            <p class="evidence"><strong>证据：</strong>${esc(point.evidence)}</p>
+            <div>
+              <div class="tag-row"><span class="tag accent">${esc(point.audience || "通用受众")}</span></div>
+              ${link(point.source_url)}
+            </div>
+          </article>`).join("") : empty("等待本周 Output Kit", "合格观点会同时提供证据与适用受众，方便转化为对外表达。");
+      };
+
+      const renderOpportunities = () => {
+        const container = document.getElementById("opportunityGrid");
+        const opportunities = currentUpdate?.opportunities || [];
+        const confidenceLabel = { high: "高置信", medium: "中等置信", low: "待验证" };
+        container.innerHTML = opportunities.length ? opportunities.map((opportunity) => `
+          <article class="card opportunity-card">
+            <div class="section-kicker">商业机会</div>
+            <span class="confidence">${esc(confidenceLabel[String(opportunity.confidence).toLowerCase()] || "待验证")}</span>
+            <h3>${esc(opportunity.title)}</h3>
+            <p>${esc(opportunity.thesis)}</p>
+            <dl class="opportunity-fields">
+              <div class="opportunity-field"><dt>潜在买方</dt><dd>${esc(opportunity.buyer)}</dd></div>
+              <div class="opportunity-field"><dt>时机信号</dt><dd>${esc(opportunity.timing)}</dd></div>
+              <div class="opportunity-field"><dt>下一步</dt><dd>${esc(opportunity.next_step)}</dd></div>
+            </dl>
+            ${link(opportunity.source_url)}
+          </article>`).join("") : empty("本周暂无足够强的机会假设", "只有能说明买方、痛点、时机与下一步验证的信号才会进入雷达。");
+      };
+
+      const renderRubric = () => {
+        const rubricIcon = {
+          building: "builder",
+          originality: "signal",
+          relevance: "diamond",
+          source_quality: "source"
+        };
+        document.getElementById("rubricList").innerHTML = (data.rubric || []).map((item) => `
+          <div class="rubric-item">
+            <span class="rubric-item-icon">${icon(rubricIcon[item.key] || "shield")}</span>
+            <div class="rubric-item-copy">
+              <strong>${esc(item.label)}</strong>
+              <span>${esc(item.description)}</span>
+            </div>
+          </div>`).join("");
+      };
+
+      const renderTrackFilters = () => {
+        const filters = document.getElementById("trackFilters");
+        filters.innerHTML = `
+          <button class="track-filter active" type="button" data-track="all">${icon("map")}全部</button>
+          ${(data.tracks || []).map((track) =>
+            `<button class="track-filter" type="button" data-track="${esc(track.id)}">${icon(trackIcon[track.id] || "signal")}${esc(track.label)}</button>`
+          ).join("")}`;
+        filters.addEventListener("click", (event) => {
+          const button = event.target.closest("[data-track]");
+          if (!button) return;
+          filters.querySelectorAll(".track-filter").forEach((item) => item.classList.remove("active"));
+          button.classList.add("active");
+          renderTimeline(button.dataset.track);
+        });
+      };
+
+      const renderTimeline = (track = "all") => {
+        const eras = (data.eras || [])
+          .filter((era) => track === "all" || era.track === track)
+          .sort((a, b) => a.sort_year - b.sort_year);
+        document.getElementById("timeline").innerHTML = eras.map((era) => {
+          const trackInfo = trackMap.get(era.track);
+          return `
+            <article class="timeline-item">
+              <div class="timeline-period">
+                <div class="section-kicker">${icon(trackIcon[era.track] || "timeline")}${esc(trackInfo?.label || era.track)}</div>
+                ${esc(era.period)}
+              </div>
+              <div>
+                <h3>${esc(era.title)}</h3>
+                <p>${esc(era.summary)}</p>
+                <ul class="landmarks">${(era.landmarks || []).map((item) => `<li>${esc(item)}</li>`).join("")}</ul>
+                <div class="implication"><strong>认知锚点：</strong>${esc(era.implication)}</div>
+                <div class="tag-row">${link(era.source_url)}</div>
+              </div>
+            </article>`;
+        }).join("");
+      };
+
+      const renderDynamicSections = () => {
+        renderHero();
+        renderAtlas();
+        renderWeekPicker();
+        renderWeekly();
+        renderBuilders();
+        renderTalkingPoints();
+        renderOpportunities();
+      };
+
+      document.getElementById("weekSelect").addEventListener("change", (event) => {
+        currentUpdate = updates.find((update) => update.week === event.target.value) || updates[0] || null;
+        renderDynamicSections();
+      });
+
+      document.getElementById("themeToggle").addEventListener("click", () => {
+        const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+        document.documentElement.dataset.theme = next;
+      });
+
+      document.getElementById("viewToggle").addEventListener("click", () => {
+        setRoadmapView(document.body.dataset.view === "archive" ? "map" : "archive");
+      });
+      document.getElementById("historyViewButton").addEventListener("click", () => {
+        setRoadmapView(document.body.dataset.view === "history" ? "map" : "history");
+      });
+      document.getElementById("historyBackButton").addEventListener("click", () => setRoadmapView("map"));
+      document.getElementById("atlasPanelClose").addEventListener("click", () => closeAtlasRegion());
+      document.getElementById("historyDetailClose").addEventListener("click", () => closeHistoryDetail());
+      document.addEventListener("keydown", (event) => {
+        if (event.key !== "Escape") return;
+        if (document.getElementById("historyDetail").classList.contains("is-open")) {
+          closeHistoryDetail();
+        } else if (document.getElementById("atlasStage").classList.contains("is-exploring")) {
+          closeAtlasRegion();
+        }
+      });
+
+      renderRubric();
+      renderTrackFilters();
+      renderTimeline();
+      renderHistoryAtlas();
+      renderDynamicSections();
+      const requestedView = new URLSearchParams(window.location.search).get("view");
+      setRoadmapView(["archive", "history"].includes(requestedView) ? requestedView : "map", "", false);
+    })();
+  </script>
+</body>
+</html>
