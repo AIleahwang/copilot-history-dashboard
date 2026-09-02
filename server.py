@@ -1135,6 +1135,7 @@ button{{font-family:inherit;font-size:inherit;color:inherit;background:none;bord
   <span class=meta id=countMeta>{total} 段对话</span>
   {'<span class=clean-status title="空白会话会在安全缓冲期后从数据库和本地状态目录中彻底删除">🧹 空白自动清理</span>' if AUTO_CLEAN_EMPTY_SESSIONS else ''}
   <div style="flex:1"></div>
+  <a href="/ai-roadmap" style="padding:7px 14px;border-radius:100px;background:rgba(158,208,184,.12);border:1px solid rgba(158,208,184,.35);color:var(--ok);font-size:12px;letter-spacing:1px;text-decoration:none;text-transform:uppercase;transition:.2s">◈ AI Roadmap</a>
   <a href="/space" style="padding:7px 14px;border-radius:100px;background:linear-gradient(135deg,rgba(232,164,120,.2),rgba(247,146,178,.15));border:1px solid rgba(232,164,120,.4);color:var(--accent);font-size:12px;letter-spacing:1px;text-decoration:none;text-transform:uppercase;transition:.2s" onmouseover="this.style.background='linear-gradient(135deg,rgba(232,164,120,.35),rgba(247,146,178,.25))'" onmouseout="this.style.background='linear-gradient(135deg,rgba(232,164,120,.2),rgba(247,146,178,.15))'">✨ 作战空间</a>
 </div>
 <div class=hint>按 <kbd>/</kbd> 搜索 · <b style="color:var(--accent)">长按模块标题</b>拖动排序 · 拖卡片到<b style="color:var(--accent)">另一卡片</b>=合并 · 拖到<b style="color:var(--ok)">列空白处</b>=改分类 · <kbd>📌</kbd> 固定 · <kbd>Esc</kbd> 关闭</div>
@@ -1974,6 +1975,23 @@ class H(BaseHTTPRequestHandler):
         elif p.path == '/space':
             from space_view import render_space
             self._send(200, render_space(fetch_sessions, CAT_COLORS))
+        elif p.path in ('/ai-roadmap', '/ai-roadmap.html'):
+            try:
+                from ai_roadmap_view import RoadmapDataError, render_ai_roadmap
+                self._send(200, render_ai_roadmap())
+            except (OSError, RoadmapDataError) as e:
+                message = html.escape(str(e))
+                self._send(500, f'<h1>AI Roadmap data error</h1><pre>{message}</pre>')
+        elif p.path == '/ai-roadmap/data':
+            try:
+                from ai_roadmap_view import RoadmapDataError, roadmap_json
+                self._send(200, roadmap_json(), 'application/json; charset=utf-8')
+            except (OSError, RoadmapDataError) as e:
+                self._send(
+                    500,
+                    json.dumps({'error': str(e)}, ensure_ascii=False),
+                    'application/json; charset=utf-8'
+                )
         elif p.path == '/session':
             q = parse_qs(p.query); sid = (q.get('id') or [''])[0]
             if not re.fullmatch(r'[0-9a-f-]{36}', sid):

@@ -1,6 +1,6 @@
 ---
 name: copilot-history-dashboard
-description: 把 GitHub Copilot CLI 本机历史对话变成可视化看板（分类/合并/搜索/恢复/删除），含 Her 风格作战空间页。WHEN：「看板」「对话历史」「恢复会话」「清理对话」「Copilot 历史」。
+description: 把 GitHub Copilot CLI 本机历史对话变成可视化看板，并提供作战空间与 AI Builder Roadmap。WHEN：「看板」「对话历史」「恢复会话」「清理对话」「Copilot 历史」「AI roadmap」「builder scout」。
 ---
 
 # Copilot History Dashboard
@@ -12,6 +12,7 @@ description: 把 GitHub Copilot CLI 本机历史对话变成可视化看板（�
 - 用户说「恢复之前那个对话」「继续之前 xxx 的会话」
 - 用户说「清理 Copilot 历史」「删除测试对话」
 - 用户说「作战空间」「Her 风格界面」
+- 用户说「AI Roadmap」「builder scout」「每周 AI 更新」
 
 ## 启动方式
 ```powershell
@@ -23,6 +24,7 @@ python server.py
 ## 关键功能
 - `/` 经典看板（六大分类 + 拖拽合并）
 - `/space` 作战空间（可拖拽缩放的科技面板）
+- `/ai-roadmap` AI 演进图 + 周更 Builder Score + Output Kit + 商业机会雷达
 - `/session?id=<id>` chat 详情页
 - `POST /resume` 触发 `copilot --resume=<id>`
 - `POST /delete` 删除 DB 行 + session-state 文件
@@ -35,5 +37,9 @@ python server.py
 - `%USERPROFILE%\.copilot\session-groups.json`
 - `%USERPROFILE%\.copilot\session-overrides.json`
 
+AI Roadmap 动态层读取：
+- `%USERPROFILE%\.follow-builders\ai-roadmap.json`
+- 使用 `python scripts\update_ai_roadmap.py --input <weekly-update.json>` 校验并更新
+
 ## 隐私
-零网络出站，所有操作只在用户本机完成。
+看板服务无遥测、无上传。对话与个人 Roadmap 数据保存在本机；可选 Follow Builders 周更任务只读取其公开中央 feed。

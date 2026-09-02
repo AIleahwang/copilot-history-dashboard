@@ -295,6 +295,7 @@ mark{{background:rgba(232,138,94,.4);color:var(--text);border-radius:3px;padding
   </div>
   <div class=toolbar>
     <button class=tool id=btnMission title="任务雷达">Mission</button>
+    <button class=tool onclick="location.href='/ai-roadmap'">AI Roadmap</button>
     <button class=tool onclick="location.href='/'">← 经典看板</button>
   </div>
 </div>
